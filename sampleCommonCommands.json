@@ -1,0 +1,26 @@
+[
+  {
+    "id": "1",
+    "name": "Example1",
+    "keyword": "ex",
+    "type": "barcode",
+    "value": "test_string",
+    "description": "This is an example command"
+  },
+  {
+    "id": "2",
+    "name": "Example2",
+    "keyword": "ex2",
+    "type": "speech",
+    "value": "test_string2",
+    "description": "This is another example command"
+  },
+  {
+    "id": "3",
+    "name": "Example3",
+    "keyword": "ex3",
+    "type": "barcode",
+    "value": "test_string3",
+    "description": "This is a third example command"
+  }
+]
