@@ -1,0 +1,120 @@
+name: Build and Release
+on:
+  push:
+    tags:
+      - 'v*'
+permissions:
+  contents: write
+  packages: write
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      # No GH_TOKEN: the build scripts pass --publish never, and the release
+      # below is the only thing that should create a release for this tag.
+      - name: Build for Windows
+        if: matrix.os == 'windows-latest'
+        run: npm run build:win
+      - name: Build for macOS
+        if: matrix.os == 'macos-latest'
+        run: npm run build:mac
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - name: Prepare macOS artifacts
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          # Get the version from the git tag (remove 'v' prefix)
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "Version: $VERSION"
+
+          # Create zip with DMG and README for each DMG file found
+          for dmg in release/*.dmg; do
+            if [ -f "$dmg" ]; then
+              # Create a meaningful name using the version
+              zip "artifacts/reverb-${VERSION}-macOS.zip" "$dmg" README.md
+              echo "Created reverb-${VERSION}-macOS.zip"
+            fi
+          done
+      - name: Prepare Windows artifacts
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path "artifacts" -Force
+
+          # Get the version from the git tag (remove 'v' prefix)
+          $version = $env:GITHUB_REF -replace 'refs/tags/v', ''
+          Write-Host "Version: $version"
+
+          # Function to create zip with exe and README
+          function Create-ZipWithReadme {
+            param($ExeFile, $Version)
+            if (Test-Path $ExeFile) {
+              $zipPath = "artifacts/reverb-$Version-Windows.zip"
+              Compress-Archive -Path $ExeFile, "README.md" -DestinationPath $zipPath -Force
+              Write-Host "Created reverb-$Version-Windows.zip"
+            }
+          }
+
+          # Try to find installers in multiple locations and create zips
+          $foundExe = $false
+          if (Test-Path "release") {
+            $setupExes = Get-ChildItem "release" -Filter "*-setup.exe"
+            $regularExes = Get-ChildItem "release" -Filter "*.exe"
+
+            # Prefer setup.exe files, otherwise use regular exe files
+            if ($setupExes) {
+              $setupExes | Select-Object -First 1 | ForEach-Object { Create-ZipWithReadme $_.FullName $version; $foundExe = $true }
+            } elseif ($regularExes) {
+              $regularExes | Select-Object -First 1 | ForEach-Object { Create-ZipWithReadme $_.FullName $version; $foundExe = $true }
+            }
+          }
+          if (-not $foundExe -and (Test-Path "dist")) {
+            $setupExes = Get-ChildItem "dist" -Filter "*-setup.exe"
+            $regularExes = Get-ChildItem "dist" -Filter "*.exe"
+
+            # Prefer setup.exe files, otherwise use regular exe files
+            if ($setupExes) {
+              $setupExes | Select-Object -First 1 | ForEach-Object { Create-ZipWithReadme $_.FullName $version }
+            } elseif ($regularExes) {
+              $regularExes | Select-Object -First 1 | ForEach-Object { Create-ZipWithReadme $_.FullName $version }
+            }
+          }
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-artifacts
+          path: artifacts/
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+      - name: List downloaded files
+        run: find . -type f | sort
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            *-artifacts/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

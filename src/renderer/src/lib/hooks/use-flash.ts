@@ -1,0 +1,15 @@
+import { useCallback, useRef, useState } from 'react'
+
+/** Returns a boolean that flips to `true` for a brief duration after `flash()` is called. */
+export function useFlash(duration = 600) {
+  const [active, setActive] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const flash = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current)
+    setActive(true)
+    timer.current = setTimeout(() => setActive(false), duration)
+  }, [duration])
+
+  return [active, flash] as const
+}

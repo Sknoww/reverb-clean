@@ -1,0 +1,16 @@
+# Normalize line endings: LF in the repo, regardless of platform checkout.
+# Matches Prettier/.editorconfig (LF) and silences the CRLF conversion warnings.
+* text=auto eol=lf
+
+# Binary assets — never normalize.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.icns binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.pdf binary
