@@ -1,0 +1,85 @@
+name: Build macOS Test Artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      architecture:
+        description: Architecture to package
+        required: true
+        default: universal
+        type: choice
+        options:
+          - universal
+          - arm64
+          - x64
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build macOS test DMG (${{ inputs.architecture }})
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run typecheck
+        run: npm run typecheck
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Build macOS DMG
+        env:
+          BUILD_ARCHITECTURE: ${{ inputs.architecture }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        shell: bash
+        run: |
+          case "$BUILD_ARCHITECTURE" in
+            universal) npm run build:mac -- --universal --config.mac.identity=- ;;
+            arm64) npm run build:mac -- --arm64 --config.mac.identity=- ;;
+            x64) npm run build:mac -- --x64 --config.mac.identity=- ;;
+          esac
+
+      - name: Verify macOS app signature
+        run: scripts/verify-macos-signature.sh
+
+      - name: Create draft test release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TITLE: Reverb macOS test ${{ github.run_number }} (${{ inputs.architecture }})
+          TEST_TAG: macos-test-${{ github.run_number }}-${{ github.run_attempt }}
+        shell: bash
+        run: |
+          shopt -s nullglob
+          dmgs=(release/*.dmg)
+          if (( ${#dmgs[@]} == 0 )); then
+            echo "No DMG files were produced." >&2
+            exit 1
+          fi
+
+          gh release create "$TEST_TAG" "${dmgs[@]}" \
+            --draft \
+            --prerelease \
+            --target "$GITHUB_SHA" \
+            --title "$RELEASE_TITLE" \
+            --notes "Ad-hoc signed macOS test build. Screen Recording permission may need to be granted again after installing a different build. Delete this draft release after testing."
+
+          release_url=$(gh release view "$TEST_TAG" --json url --jq .url)
+          echo "### macOS test build" >> "$GITHUB_STEP_SUMMARY"
+          echo "[$RELEASE_TITLE]($release_url)" >> "$GITHUB_STEP_SUMMARY"

@@ -15,6 +15,15 @@ import {
 } from './managers/adbManager'
 import { executeJsScript } from './managers/jsManager'
 import { runProvision } from './managers/provisionManager'
+import {
+  cancelRegionSelection,
+  claimRegionSelection,
+  completeRegionSelection,
+  initializeRegionSelector,
+  releaseRegionSelection,
+  selectScreenBarcodeRegion
+} from './managers/regionBarcodeScanner'
+import { scanScreenBarcodes } from './managers/screenBarcodeScanner'
 import { exportBundle, importBundle } from './managers/backupManager'
 import {
   getConfigFilePath,
@@ -216,6 +225,52 @@ function setupIPC() {
 
   // Logger handlers
   ipcMain.handle('logger:getLogsDirectory', () => getLogsDirectory())
+
+  // Quick-scan screenshots never cross into the renderer.
+  ipcMain.handle('barcode:scanScreens', async (event, requestId: string) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (!window) return { status: 'capture-failed' as const }
+
+    return scanScreenBarcodes(window, (progress) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send('barcode:progress', { requestId, progress })
+      }
+    })
+  })
+
+  ipcMain.handle('barcode:selectRegion', async (event, requestId: string) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (!window) return { status: 'capture-failed' as const }
+
+    return selectScreenBarcodeRegion(
+      window,
+      {
+        preloadPath: join(__dirname, '../preload/index.js'),
+        rendererFile: join(__dirname, '../renderer/index.html'),
+        rendererUrl: is.dev ? process.env['ELECTRON_RENDERER_URL'] : undefined
+      },
+      (progress) => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send('barcode:progress', { requestId, progress })
+        }
+      }
+    )
+  })
+
+  ipcMain.handle('barcode:regionInitialize', (event) => initializeRegionSelector(event.sender.id))
+  ipcMain.handle('barcode:regionClaim', (event) => claimRegionSelection(event.sender.id))
+  ipcMain.on('barcode:regionRelease', (event) => releaseRegionSelection(event.sender.id))
+  ipcMain.on('barcode:regionComplete', (event, selection) =>
+    completeRegionSelection(event.sender.id, selection)
+  )
+  ipcMain.on('barcode:regionCancel', (event) => cancelRegionSelection(event.sender.id))
+
+  ipcMain.handle('barcode:openScreenRecordingSettings', async () => {
+    if (process.platform !== 'darwin') return
+    await shell.openExternal(
+      'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture'
+    )
+  })
 
   // ADB handlers - UPDATED to include device selection
   ipcMain.handle('adb:getDevices', async () => {

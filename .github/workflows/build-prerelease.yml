@@ -23,9 +23,11 @@ jobs:
         run: npm ci
       # Build commands never publish; the release step owns publishing.
       - name: Build for macOS
-        run: npm run build:mac
+        run: npm run build:mac -- --config.mac.identity=-
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
+      - name: Verify macOS app signature
+        run: scripts/verify-macos-signature.sh
       - name: Prepare macOS artifacts
         shell: bash
         run: |

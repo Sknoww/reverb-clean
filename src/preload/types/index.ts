@@ -171,6 +171,53 @@ export interface LoggingConfig {
   maxFiles: number
 }
 
+export type ScreenScanProgress = 'capturing' | 'selecting' | 'decoding'
+
+export interface RegionSelection {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export interface RegionSelectorInit {
+  displayId: string
+  displayNumber: number
+  width: number
+  height: number
+  scaleFactor: number
+  backgroundUrl: string
+}
+
+export interface ScreenBarcodePoint {
+  x: number
+  y: number
+}
+
+export interface ScreenBarcode {
+  text: string
+  format: string
+  symbology: string
+  displayId: string
+  displayNumber: number
+  position: {
+    topLeft: ScreenBarcodePoint
+    topRight: ScreenBarcodePoint
+    bottomLeft: ScreenBarcodePoint
+    bottomRight: ScreenBarcodePoint
+  }
+}
+
+export type ScreenBarcodeScanResult =
+  | { status: 'not-found' }
+  | { status: 'found'; barcode: ScreenBarcode }
+  | { status: 'multiple'; barcodes: ScreenBarcode[] }
+  | { status: 'permission-denied'; permission: 'denied' | 'restricted' | 'not-determined' }
+  | { status: 'capture-failed' }
+  | { status: 'decoder-failed' }
+  | { status: 'busy' }
+  | { status: 'cancelled' }
+
 // Config backup (area 17) — mirrors src/main/types
 
 /** One rotating pre-write snapshot of `config.json`. */
