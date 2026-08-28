@@ -8,12 +8,9 @@ permissions:
   packages: write
 jobs:
   build:
-    name: Build (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    name: Build (macOS)
+    runs-on: macos-latest
     timeout-minutes: 30
-    strategy:
-      matrix:
-        os: [windows-latest, macos-latest]
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -24,18 +21,12 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
-      # No GH_TOKEN: the build scripts pass --publish never, and the pre-release
-      # below is the only thing that should create a release for this tag.
-      - name: Build for Windows
-        if: matrix.os == 'windows-latest'
-        run: npm run build:win
+      # Build commands never publish; the release step owns publishing.
       - name: Build for macOS
-        if: matrix.os == 'macos-latest'
         run: npm run build:mac
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
       - name: Prepare macOS artifacts
-        if: matrix.os == 'macos-latest'
         shell: bash
         run: |
           mkdir -p artifacts
@@ -48,49 +39,10 @@ jobs:
               echo "Created reverb-${VERSION}-rc-macOS.zip"
             fi
           done
-      - name: Prepare Windows artifacts
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Path "artifacts" -Force
-
-          $version = $env:GITHUB_REF -replace 'refs/tags/rc-v', ''
-          Write-Host "Version: $version"
-
-          function Create-ZipWithReadme {
-            param($ExeFile, $Version)
-            if (Test-Path $ExeFile) {
-              $zipPath = "artifacts/reverb-$Version-rc-Windows.zip"
-              Compress-Archive -Path $ExeFile, "README.md" -DestinationPath $zipPath -Force
-              Write-Host "Created reverb-$Version-rc-Windows.zip"
-            }
-          }
-
-          $foundExe = $false
-          if (Test-Path "release") {
-            $setupExes = Get-ChildItem "release" -Filter "*-setup.exe"
-            $regularExes = Get-ChildItem "release" -Filter "*.exe"
-
-            if ($setupExes) {
-              $setupExes | Select-Object -First 1 | ForEach-Object { Create-ZipWithReadme $_.FullName $version; $foundExe = $true }
-            } elseif ($regularExes) {
-              $regularExes | Select-Object -First 1 | ForEach-Object { Create-ZipWithReadme $_.FullName $version; $foundExe = $true }
-            }
-          }
-          if (-not $foundExe -and (Test-Path "dist")) {
-            $setupExes = Get-ChildItem "dist" -Filter "*-setup.exe"
-            $regularExes = Get-ChildItem "dist" -Filter "*.exe"
-
-            if ($setupExes) {
-              $setupExes | Select-Object -First 1 | ForEach-Object { Create-ZipWithReadme $_.FullName $version }
-            } elseif ($regularExes) {
-              $regularExes | Select-Object -First 1 | ForEach-Object { Create-ZipWithReadme $_.FullName $version }
-            }
-          }
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.os }}-artifacts
+          name: macos-artifacts
           path: artifacts/
   release:
     name: Create Pre-Release
@@ -98,14 +50,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
       - name: List downloaded files
         run: find . -type f | sort
       - name: Create Pre-Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
-          files: |
-            *-artifacts/*
+          files: macos-artifacts/*
           draft: false
           prerelease: true
           name: 'Pre-Release ${{ github.ref_name }}'
