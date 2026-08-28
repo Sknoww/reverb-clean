@@ -10,6 +10,10 @@ import {
   ProvisionConfig,
   ProvisionProgress,
   ProvisionResult,
+  RegionSelection,
+  RegionSelectorInit,
+  ScreenBarcodeScanResult,
+  ScreenScanProgress,
   SyncApplyResult,
   SyncConfig,
   SyncPlanResult,
@@ -39,6 +43,26 @@ declare global {
       executeApplicationReset: () => Promise<AdbCommandResult>
       /** `pm clear` against the configured package, the provisioning routine, then a relaunch (areas 25 and 28). */
       clearStorage: () => Promise<ClearStorageResult>
+    }
+    barcodeAPI: {
+      /** Capture and decode locally; screenshots never cross into the renderer. */
+      scanScreens: (
+        onProgress?: (progress: ScreenScanProgress) => void
+      ) => Promise<ScreenBarcodeScanResult>
+      selectRegion: (
+        onProgress?: (progress: ScreenScanProgress) => void
+      ) => Promise<ScreenBarcodeScanResult>
+      openScreenRecordingSettings: () => Promise<void>
+    }
+    regionSelectorAPI: {
+      initialize: () => Promise<RegionSelectorInit | null>
+      claim: () => Promise<boolean>
+      release: () => void
+      complete: (selection: RegionSelection) => void
+      cancel: () => void
+      onOwnerChanged: (
+        callback: (ownership: { owned: boolean; blocked: boolean }) => void
+      ) => () => void
     }
     provisionAPI: {
       /** The steps alone — no force-stop, no relaunch (area 28). */

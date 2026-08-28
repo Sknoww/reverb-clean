@@ -4,6 +4,7 @@ import logger from '../logger'
 import { getAdbPath } from '../utils/adbUtils'
 import { loadConfig } from './configManager'
 import { runProvision } from './provisionManager'
+import { runAdbBroadcast } from './adbBroadcast'
 import { ProvisionProgress, ProvisionResult } from '../types'
 
 export interface AdbCommandResult {
@@ -107,41 +108,19 @@ export const getConnectedDevices = async (): Promise<AdbDevice[]> => {
 
 /** Send a command as a broadcast. */
 export const executeAdbCommand = async (type: string, value: string): Promise<AdbCommandResult> => {
-  try {
-    const config = loadConfig()
-    const intent = type === 'speech' ? config.target.speechIntent : config.target.barcodeIntent
-    if (!intent) return NO_TARGET(`${type === 'speech' ? 'speech' : 'barcode'} intent action`)
+  const config = loadConfig()
+  const commandType = type === 'speech' ? 'speech' : 'barcode'
+  const intent = commandType === 'speech' ? config.target.speechIntent : config.target.barcodeIntent
+  if (!intent) return NO_TARGET(`${commandType} intent action`)
 
-    const adb = getAdbPath(config.adbPath)
-    const deviceId = config.currentDeviceId
-    logger.info('Device ID:', deviceId)
-    const deviceFlag = deviceId ? `-s ${deviceId} ` : ''
-    const command = `"${adb}" ${deviceFlag}shell "am broadcast -a ${intent} --es data \\"${value}\\""`
-
-    logger.info(`Executing ADB command: ${command}`)
-
-    const { stdout, stderr } = await exec(command, { timeout: config.behavior.adbTimeoutMs })
-
-    if (stderr && stderr.toLowerCase().includes('error')) {
-      logger.error('Error executing ADB command:', stderr)
-      return {
-        success: false,
-        error: stderr
-      }
-    }
-
-    logger.info('ADB command result:', stdout)
-    return {
-      success: true,
-      output: stdout
-    }
-  } catch (error: any) {
-    logger.error('ADB command failed:', error)
-    return {
-      success: false,
-      error: describeExecError(error)
-    }
-  }
+  return runAdbBroadcast({
+    adbPath: getAdbPath(config.adbPath),
+    deviceId: config.currentDeviceId,
+    intent,
+    type: commandType,
+    value,
+    timeoutMs: config.behavior.adbTimeoutMs
+  })
 }
 
 // Sleep helper function

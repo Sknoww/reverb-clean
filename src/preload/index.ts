@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
-import { ProvisionProgress } from './types'
+import { randomUUID } from 'node:crypto'
+import { ProvisionProgress, RegionSelection, ScreenScanProgress } from './types'
 
 // Expose project management API to renderer
 contextBridge.exposeInMainWorld('projectAPI', {
@@ -20,6 +21,47 @@ contextBridge.exposeInMainWorld('adbAPI', {
   executeApplicationReset: () => ipcRenderer.invoke('adb:applicationReset'),
   // Area 25.
   clearStorage: () => ipcRenderer.invoke('adb:clearStorage')
+})
+
+const invokeBarcodeScan = (
+  channel: 'barcode:scanScreens' | 'barcode:selectRegion',
+  onProgress?: (progress: ScreenScanProgress) => void
+) => {
+  const requestId = randomUUID()
+  const listener = (
+    _event: IpcRendererEvent,
+    update: { requestId: string; progress: ScreenScanProgress }
+  ): void => {
+    if (update.requestId === requestId) onProgress?.(update.progress)
+  }
+  ipcRenderer.on('barcode:progress', listener)
+  return ipcRenderer
+    .invoke(channel, requestId)
+    .finally(() => ipcRenderer.removeListener('barcode:progress', listener))
+}
+
+contextBridge.exposeInMainWorld('barcodeAPI', {
+  scanScreens: (onProgress?: (progress: ScreenScanProgress) => void) =>
+    invokeBarcodeScan('barcode:scanScreens', onProgress),
+  selectRegion: (onProgress?: (progress: ScreenScanProgress) => void) =>
+    invokeBarcodeScan('barcode:selectRegion', onProgress),
+  openScreenRecordingSettings: () => ipcRenderer.invoke('barcode:openScreenRecordingSettings')
+})
+
+contextBridge.exposeInMainWorld('regionSelectorAPI', {
+  initialize: () => ipcRenderer.invoke('barcode:regionInitialize'),
+  claim: () => ipcRenderer.invoke('barcode:regionClaim'),
+  release: () => ipcRenderer.send('barcode:regionRelease'),
+  complete: (selection: RegionSelection) => ipcRenderer.send('barcode:regionComplete', selection),
+  cancel: () => ipcRenderer.send('barcode:regionCancel'),
+  onOwnerChanged: (callback: (ownership: { owned: boolean; blocked: boolean }) => void) => {
+    const listener = (
+      _event: IpcRendererEvent,
+      ownership: { owned: boolean; blocked: boolean }
+    ): void => callback(ownership)
+    ipcRenderer.on('barcode:regionOwner', listener)
+    return () => ipcRenderer.removeListener('barcode:regionOwner', listener)
+  }
 })
 
 contextBridge.exposeInMainWorld('provisionAPI', {

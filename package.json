@@ -12,6 +12,7 @@
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "test": "vitest run",
     "prestart": "install-electron",
     "start": "electron-vite preview",
     "predev": "install-electron",
@@ -66,13 +67,15 @@
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.1.0",
     "winston": "^3.17.0",
-    "yaml": "^2.9.0"
+    "yaml": "^2.9.0",
+    "zxing-wasm": "^3.1.3"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
     "@electron-toolkit/eslint-config-ts": "^3.1.0",
     "@electron-toolkit/tsconfig": "^1.0.1",
     "@types/node": "^20.17.6",
+    "@types/pngjs": "^6.0.5",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@types/winston": "^2.4.4",
@@ -84,13 +87,15 @@
     "eslint": "^9.39.5",
     "eslint-plugin-react": "^7.34.3",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "pngjs": "^7.0.0",
     "postcss": "^8.4.49",
     "prettier": "^3.3.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwindcss": "^3.4.14",
     "typescript": "^5.5.2",
-    "vite": "^7.3.6"
+    "vite": "^7.3.6",
+    "vitest": "^3.2.7"
   },
   "overrides": {
     "@radix-ui/*": "^1.0.0"
@@ -114,6 +119,12 @@
       "!{electron.vite.config.ts,eslint.config.mjs,postcss.config.js,tailwind.config.js}",
       "!components.json",
       "!package-lock.json",
+      "!node_modules/zxing-wasm/dist/es/**",
+      "!node_modules/zxing-wasm/dist/iife/**",
+      "!node_modules/zxing-wasm/dist/cjs/full/**",
+      "!node_modules/zxing-wasm/dist/cjs/writer/**",
+      "!node_modules/zxing-wasm/dist/full/**",
+      "!node_modules/zxing-wasm/dist/writer/**",
       "!*.md",
       "!{sampleCommonCommands.json,sampleProject.json}",
       "!dev-app-update.yml"
@@ -143,6 +154,7 @@
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
       "extendInfo": {
+        "NSScreenCaptureUsageDescription": "Reverb captures visible screens only when you choose Scan screens, to read Data Matrix and QR codes locally.",
         "NSDocumentsFolderUsageDescription": "Application requires access to the Documents folder.",
         "NSDownloadsFolderUsageDescription": "Application requires access to the Downloads folder."
       }
