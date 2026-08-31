@@ -25,7 +25,7 @@ interface FlowModalProps {
   onSave: (flow: Flow, isNewFlow: boolean) => void
   title?: string
   error?: boolean
-  /** `behavior.flowDelayMs` (18b) — what a new flow's delay starts at. */
+
   defaultDelay: number
 }
 
@@ -46,12 +46,10 @@ export function FlowModal({
     delay: defaultDelay
   })
 
-  // State
   const [editedFlow, setEditedFlow] = useState<Flow>(flow || makeDefaultFlow())
-  // Delay is held as text while editing so the field can be cleared and retyped; it's coerced back to a number on submit.
+
   const [delayText, setDelayText] = useState(String(defaultDelay))
-  // Dashboard owns the duplicate-name error and only clears it on save/close, so
-  // editing the name hides it until the next submit.
+
   const [nameEdited, setNameEdited] = useState(false)
   const isNewflow = !flow
 
@@ -68,7 +66,6 @@ export function FlowModal({
 
   const showNameError = Boolean(error) && !nameEdited
 
-  // Handlers
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     if (name === 'name') setNameEdited(true)

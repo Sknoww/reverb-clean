@@ -8,8 +8,6 @@ import { SyncGroup, SyncList } from '../components/syncList'
 import { SyncPathKey, SyncPaths, SyncPathsBand, SyncSetupCard } from '../components/syncPaths'
 import { useSyncContext } from '../contexts/syncContext'
 
-// The Sync screen (S2, frames 6a–6e).
-
 type Filter = 'all' | 'selected' | 'outOfDate' | 'notInLocal'
 
 const FILTER_LABELS: Record<Filter, string> = {
@@ -26,13 +24,11 @@ const EMPTY_PATHS: SyncPaths = {
   deploymentPath: ''
 }
 
-/** Groups in source order, first appearance wins (spec D4 — display only). */
 function groupEntries(entries: SyncEntry[]): SyncGroup[] {
   const groups: SyncGroup[] = []
   const byName = new Map<string, SyncGroup>()
 
   for (const entry of entries) {
-    // A source path with no directory to name has nowhere sensible to sit.
     const name = entry.group ?? 'ungrouped'
     let group = byName.get(name)
     if (!group) {
@@ -46,7 +42,6 @@ function groupEntries(entries: SyncEntry[]): SyncGroup[] {
   return groups
 }
 
-/** Which side of the scan failed. */
 function isTargetError(error: string): boolean {
   return error.includes('target file')
 }
@@ -119,11 +114,9 @@ export function SyncTab() {
   const [paths, setPaths] = useState<SyncPaths>(EMPTY_PATHS)
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
-  // Declared above the setup/scanning early returns — the ref goes unattached
-  // on the states that render no list.
+
   const listRef = useScrollMemory('sync')
 
-  // The scan is the authority on what's configured — it reads config in the main process — so local path state follows it rather than the...
   useEffect(() => {
     if (!scan) return
     setPaths({
@@ -138,7 +131,7 @@ export function SyncTab() {
     setPaths((prev) => ({ ...prev, [key]: value }))
     if (key === 'connectorRoot') await window.configAPI.updateConnectorRoot(value)
     else await window.configAPI.updateSyncConfig({ [key]: value })
-    // Rule 3: never trust a previous read once a path moves.
+
     await rescan()
   }
 
@@ -155,8 +148,6 @@ export function SyncTab() {
   )
 
   const visible = useMemo(() => {
-    // Zones and filenames both carry spaces, so this is a plain
-    // case-insensitive substring test — no tokenising, no assumptions.
     const needle = query.trim().toLowerCase()
 
     return entries.filter((entry) => {
@@ -173,7 +164,6 @@ export function SyncTab() {
   const orphans = visible.filter((entry) => entry.status === 'orphan')
   const groups = groupEntries(visible.filter((entry) => entry.status !== 'orphan'))
 
-  // ---- first run --------------------------------------------------------- Frame 6d: not a modal — the shell stays drawn around it, and...
   if (scan && !configured) {
     return (
       <SyncSetupCard

@@ -1,7 +1,6 @@
-/** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./src/renderer/src/**/*.{js,ts,jsx,tsx}'],
-  // Enable dark mode using class strategy
+
   darkMode: 'class',
   theme: {
     container: {
@@ -13,7 +12,6 @@ module.exports = {
     },
     extend: {
       fontFamily: {
-        /* Bundled via @fontsource-variable (imported in main.tsx). */
         mono: [
           'JetBrains Mono Variable',
           'ui-monospace',
@@ -61,8 +59,6 @@ module.exports = {
           foreground: 'hsl(var(--card-foreground))'
         },
 
-        /* Redesign: Workspace Shell tokens (C0). Defined in base.css as bare
-           HSL channels; /opacity modifier supported. See DESIGN.md. */
         'surface-shell': 'hsl(var(--surface-shell))',
         'surface-chrome': 'hsl(var(--surface-chrome))',
         'surface-panel': 'hsl(var(--surface-panel))',

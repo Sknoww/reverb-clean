@@ -4,7 +4,6 @@ import path from 'path'
 import logger from '../logger'
 import { loadConfig } from './configManager'
 
-// Select folder dialog
 export const selectFolder = async (title = 'Select Save Location', defaultPath?: string) => {
   logger.info('Opening folder selection dialog')
   const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -19,7 +18,6 @@ export const selectFolder = async (title = 'Select Save Location', defaultPath?:
   return null
 }
 
-/** Absolute-path file picker for the sync screen's source/target YAMLs. */
 export const selectYamlFile = async (title = 'Select YAML File', defaultPath?: string) => {
   logger.info('Opening YAML selection dialog')
   const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -38,7 +36,6 @@ export const selectYamlFile = async (title = 'Select YAML File', defaultPath?: s
   return null
 }
 
-/** Absolute path to an `adb` binary, for Settings' ADB override (18b). */
 export const selectExecutable = async (title = 'Select adb', defaultPath?: string) => {
   logger.info('Opening executable selection dialog')
   const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -58,7 +55,6 @@ export const selectExecutable = async (title = 'Select adb', defaultPath?: strin
   return !canceled && filePaths.length > 0 ? filePaths[0] : null
 }
 
-/** Where to write an export bundle (area 17). */
 export const selectBundleSavePath = async (defaultFileName: string) => {
   logger.info('Opening bundle save dialog')
   const { canceled, filePath } = await dialog.showSaveDialog({
@@ -73,7 +69,6 @@ export const selectBundleSavePath = async (defaultFileName: string) => {
   return !canceled && filePath ? filePath : null
 }
 
-/** Absolute path to an export bundle to import (area 17). */
 export const selectBundleFile = async () => {
   logger.info('Opening bundle selection dialog')
   const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -89,7 +84,6 @@ export const selectBundleFile = async () => {
   return !canceled && filePaths.length > 0 ? filePaths[0] : null
 }
 
-/** Project picker for `projectSelect`. */
 export const selectFile = async () => {
   logger.info('Opening file selection dialog')
   const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -115,7 +109,6 @@ export const openInEditor = async (filePath: string) => {
   }
 }
 
-/** Sync's per-row reveal action (spec D14). */
 export const revealItem = async (filePath: string) => {
   logger.info('Revealing file:', filePath)
   shell.showItemInFolder(filePath)

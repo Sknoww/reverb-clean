@@ -5,11 +5,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { ConfirmModal } from './confirmModal'
 import { SETTINGS_BUTTON, SettingsDivider, SettingsNumber, SettingsRow } from './settingsSection'
 
-// Settings' Data section (area 18a) — the UI area 17b's backend was built for.
-
 const MARKER = <SettingsGlyph className="h-3.5 w-3.5 text-accent-indigo" aria-hidden />
 
-/** `2026-07-27 14:03:22` — sortable, unambiguous, and what a log line looks like. */
 function formatStamp(iso: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return iso
@@ -29,11 +26,10 @@ interface Notice {
   text: string
 }
 
-/** Shared read of a bundle call — cancel is not an outcome worth reporting. */
 function bundleNotice(result: BundleResult, verb: 'Exported' | 'Imported'): Notice | null {
   if (!result.success) {
     return result.filePath === null && !result.error
-      ? null // cancelled the picker
+      ? null
       : { ok: false, text: result.error ?? `${verb} failed.` }
   }
 
@@ -44,14 +40,12 @@ function bundleNotice(result: BundleResult, verb: 'Exported' | 'Imported'): Noti
   }
 }
 
-/** Mirrors `SNAPSHOT_BOUNDS` in configManager. */
 const SNAPSHOT_BOUNDS = { min: 1, max: 50 }
 
 export function SettingsData({
   maxSnapshots,
   onConfigReplaced
 }: {
-  /** 18b made retention a field; 5 is the default 18a trimmed it to. */
   maxSnapshots: number
   onConfigReplaced: () => void
 }) {
@@ -81,7 +75,7 @@ export function SettingsData({
           ? { ok: true, text: `Restored config from ${formatStamp(snapshot.savedAt)}.` }
           : { ok: false, text: 'Restore failed — the current config is unchanged.' }
       )
-      // The restore wrote a snapshot of what it replaced, so the list grew.
+
       await refreshSnapshots()
       if (ok) onConfigReplaced()
     } finally {
@@ -111,7 +105,6 @@ export function SettingsData({
     }
   }
 
-  // Lowering the cap trims on the write that lowers it (`snapshotCurrentFile` rotates against the *pending* config), so the list below...
   const handleRetention = async (max: number) => {
     await window.configAPI.updateMaxSnapshots(max)
     await refreshSnapshots()
@@ -184,14 +177,6 @@ export function SettingsData({
             className="mt-1 max-h-[260px] overflow-y-auto pr-1"
             style={{ scrollbarGutter: 'stable' }}
           >
-            {/*
-              No row accent here. An earlier pass marked `index === 0` — but a
-              restore is itself a write, so it snapshots the current bytes first
-              and the new top row holds the config you just moved *away from*.
-              The rule sat on the discarded state and never appeared to move.
-              Every snapshot is a *pre*-write state and the live config is a
-              *post*-write one, so no row is "the current one" to begin with.
-            */}
             {snapshots.map((snapshot) => (
               <div
                 key={snapshot.fileName}

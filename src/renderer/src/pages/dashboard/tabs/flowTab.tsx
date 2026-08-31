@@ -6,7 +6,6 @@ import { LuChevronsDownUp, LuChevronsUpDown } from 'react-icons/lu'
 import { FlowCard } from '../components/flowCard'
 import { TARGET_MESSAGES, TargetNotice } from '../components/targetNotice'
 
-/** Stable empty set, so the initial value isn't a fresh allocation per render. */
 const NONE_COLLAPSED: ReadonlySet<string> = new Set()
 
 interface FlowTabProps {
@@ -20,7 +19,7 @@ interface FlowTabProps {
   handleEditFlowCommand: (flow: Flow, command: AdbCommand) => void
   handleDeleteFlowCommand: (flow: Flow, command: AdbCommand) => void
   handleReorderFlowCommands: (flow: Flow, commands: AdbCommand[]) => void
-  /** An intent action is configured (area 19). Building a flow never needs one. */
+
   canSend: boolean
 }
 
@@ -37,10 +36,8 @@ export function FlowTab({
   handleReorderFlowCommands,
   canSend
 }: FlowTabProps) {
-  // Replaces a first-mount `scrollTop = 0`: pinning the list to the top was only ever the *right* answer on the first visit, and this still...
   const listRef = useScrollMemory('flows')
 
-  // Which cards are collapsed, by flow id.
   const [collapsedIds, setCollapsedIds] = useSessionState<ReadonlySet<string>>(
     'flows.collapsed',
     NONE_COLLAPSED
@@ -93,15 +90,11 @@ export function FlowTab({
 
   return (
     <div className="flex h-full flex-col">
-      {/* Same placement rule as Commands (19a): flows stay readable and editable
-          with no target; only the runs are off. */}
       {!canSend && (
         <div className="flex-shrink-0 pb-3 pt-1">
           <TargetNotice message={TARGET_MESSAGES.commands} />
         </div>
       )}
-
-      {/* List toolbar — the same slot and metrics as the Commands screen's filter-chip row. */}
       <div className="flex flex-shrink-0 items-center gap-2 pb-3 pt-1">
         <span className="select-none text-xs text-glyph-dim">
           <span className="font-mono">{project.flows.length}</span>{' '}
@@ -123,8 +116,6 @@ export function FlowTab({
         className="min-h-0 flex-1 overflow-y-auto pb-4 pr-1"
         style={{ scrollbarGutter: 'stable' }}
       >
-        {/* Card order is persisted (21a); the `DndContext` is the shell's, so a
-            dock command can be dropped onto a card without leaving it. */}
         <SortableContext
           items={project.flows.map((flow) => flow.id)}
           strategy={verticalListSortingStrategy}

@@ -23,8 +23,6 @@ import { LuCheck, LuGripVertical, LuPencil, LuPlay, LuTrash2 } from 'react-icons
 
 export type CommandTypeFilter = 'all' | 'barcode' | 'speech'
 
-// Shared grid language (redesign C4) — reused by the Flows screen (C5) with its
-// own column widths. drag · Type · Name · Keyword · Value · Description · actions.
 const GRID = '26px 96px 190px 130px 1fr 160px 96px'
 
 interface CommandTableProps {
@@ -34,12 +32,10 @@ interface CommandTableProps {
   handleShowDeleteModal: (command: AdbCommand) => void
   handleSendCommand: (command: AdbCommand) => void
   handleReorderCommands: (commands: AdbCommand[]) => void
-  /** False when no target is configured (area 19) — the list stays readable and editable, only Run goes. */
+
   canSend: boolean
 }
 
-// Ensure every command carries a stable id for dnd + React keys (legacy commands
-// predating the id field fall back to a keyword/index-derived one).
 function withIds(commands: AdbCommand[] | undefined): AdbCommand[] {
   return (commands ?? []).map((command, index) =>
     command.id ? command : { ...command, id: `command-${command.keyword}-${index}` }
@@ -91,7 +87,6 @@ function SortableCommandRow({
       style={style}
       className="group grid items-center border-b border-surface-control px-4 py-2.5 text-[13px] transition-colors last:border-b-0 hover:bg-row-hover"
     >
-      {/* drag handle */}
       <span
         {...attributes}
         {...listeners}
@@ -101,33 +96,27 @@ function SortableCommandRow({
         <LuGripVertical size={15} />
       </span>
 
-      {/* type */}
       <span className={`flex items-center gap-2 text-xs ${typeStyle.label}`}>
         <span className={`h-2 w-2 flex-shrink-0 rounded-[2px] ${typeStyle.dot}`} aria-hidden />
         {command.type}
       </span>
 
-      {/* name */}
       <span className="truncate pr-3 font-medium text-foreground" title={command.name}>
         {command.name}
       </span>
 
-      {/* keyword */}
       <span className="truncate pr-3 font-mono text-mono-keyword" title={command.keyword}>
         {command.keyword}
       </span>
 
-      {/* value */}
       <span className="truncate pr-3 font-mono text-muted-foreground" title={command.value}>
         {command.value}
       </span>
 
-      {/* description */}
       <span className="truncate pr-3 text-text-dim" title={command.description}>
         {command.description}
       </span>
 
-      {/* actions — icon buttons, visible at rest, each with a hover tint */}
       <span className="flex items-center justify-end gap-0.5">
         <button
           type="button"
@@ -202,8 +191,8 @@ export function CommandTable({
     const newIndex = visible.findIndex((c) => c.id === over.id)
     if (oldIndex === -1 || newIndex === -1) return
     const newVisible = arrayMove(visible, oldIndex, newIndex)
-    // Splice the reordered subset back into the full list, leaving the
-    // filtered-out commands in their original slots.
+
+    // Put reordered matches back without moving commands hidden by the filter.
     let vi = 0
     const full = items.map((command) => (matches(command) ? newVisible[vi++] : command))
     setItems(full)
@@ -212,7 +201,6 @@ export function CommandTable({
 
   return (
     <div className="overflow-hidden rounded-xl border border-hairline bg-surface-panel">
-      {/* header */}
       <div
         className="grid items-center border-b border-hairline px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.06em] text-glyph-dim"
         style={{ gridTemplateColumns: GRID }}

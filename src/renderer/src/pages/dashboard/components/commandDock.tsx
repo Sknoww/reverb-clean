@@ -21,8 +21,6 @@ import {
   LuPlus
 } from 'react-icons/lu'
 
-// Global commands dock (redesign C3).
-
 interface CommandDockProps {
   commands: AdbCommand[] | undefined
   collapsed: boolean
@@ -31,12 +29,10 @@ interface CommandDockProps {
   handleEditCommand: (command: AdbCommand | null, isCommon: boolean) => void
   handleShowDeleteModal: (command: AdbCommand) => void
   handleSendCommand: (command: AdbCommand) => void
-  /** An intent action is configured (area 19) — only Run is gated, not the library. */
+
   canSend: boolean
 }
 
-// Common commands are keyed by `keyword` everywhere in the config plumbing
-// (save maps by it, delete filters by it), so it doubles as the sortable id.
 function DockRow({
   command,
   onEdit,
@@ -56,7 +52,6 @@ function DockRow({
   })
   const [sent, flashSent] = useFlash()
 
-  // 21b: the shell's `DragOverlay` carries the dragged row once it can leave the dock, so this one stays put as a dimmed slot instead of...
   const style = {
     transform: isDragging ? undefined : CSS.Transform.toString(transform),
     transition,
@@ -148,7 +143,6 @@ export function CommandDock({
   handleSendCommand,
   canSend
 }: CommandDockProps) {
-  // The dock is chrome, but it isn't immune: the shell drops it entirely on the dockless routes (`mainContainer.tsx`), so crossing one and...
   const bodyRef = useScrollMemory('dock')
 
   if (collapsed) {
@@ -171,7 +165,6 @@ export function CommandDock({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* header — 56px, aligns with the top bar */}
       <div className="flex h-14 flex-shrink-0 items-center justify-between border-b border-hairline px-4">
         <span className="flex items-center gap-2">
           <span className="text-[13px] font-semibold text-foreground">Global commands</span>
@@ -201,14 +194,12 @@ export function CommandDock({
         </span>
       </div>
 
-      {/* body */}
       <div
         ref={bodyRef}
         className="min-h-0 flex-1 overflow-y-auto p-3"
         style={{ scrollbarGutter: 'stable' }}
       >
         {count === 0 ? (
-          // The "what is this dock" copy lives here rather than as a permanent caption — it's onboarding text, useful once.
           <div className="flex flex-col items-center gap-3 px-2 py-8 text-center">
             <p className="text-[13px] text-glyph-dim">No global commands yet</p>
             <p className="text-[11px] leading-snug text-glyph-dimmer">
@@ -224,7 +215,6 @@ export function CommandDock({
             </Button>
           </div>
         ) : (
-          // The matching `DndContext` is the shell's, not this component's (21a) — a dock row has to be draggable onto a flow card, which is outside...
           <SortableContext
             items={commands!.map((command) => command.keyword)}
             strategy={verticalListSortingStrategy}

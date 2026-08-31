@@ -23,7 +23,6 @@ export default defineConfig({
   },
   renderer: {
     build: {
-      // Vite inlines assets under 4 KiB as base64 data: URIs.
       assetsInlineLimit: (filePath: string) =>
         /\.(?:woff2?|ttf|otf|eot)$/i.test(filePath) ? false : undefined
     },

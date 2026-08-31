@@ -19,9 +19,6 @@ import { DeviceSelector } from './deviceSelector'
 import { ProjectMenu } from './projectSelect'
 import { SyncProfileMenu } from './syncProfileMenu'
 
-// Top-bar chrome (redesign C2).
-
-// The JS console targets the client's script provider, not the open project, so it gets no breadcrumb at all — the mock's provider-name...
 const SCREENS: Record<string, { title: string; breadcrumb: boolean }> = {
   '/': { title: 'Commands', breadcrumb: true },
   '/flows': { title: 'Flows', breadcrumb: true },
@@ -39,9 +36,9 @@ interface TopBarProps {
   onResetClient: () => void
   onClearStorage: () => void
   onRunProvision: () => void
-  /** Both target halves are set (area 19) — force-stop *and* launcher activity. */
+
   canResetClient: boolean
-  /** There is a routine to run (28b2) — `provision.steps` is non-empty. */
+
   canProvision: boolean
   onOpenProjectFile: () => void
 }
@@ -64,7 +61,7 @@ export function TopBar({
   const screen = SCREENS[pathname] ?? SCREENS['/']
   const isFlowsRoute = pathname === '/flows'
   const isSyncRoute = pathname === '/sync'
-  /** Routes that drive the client app — the ones Reset client and ⋯ belong on. */
+
   const isClientRoute = !isSyncRoute && pathname !== '/settings'
   const sync = useSyncContext()
 
@@ -83,9 +80,6 @@ export function TopBar({
           >
             <RefreshCw className={cn('h-3.5 w-3.5', sync.scanning && 'animate-spin')} />
           </button>
-
-          {/* Nothing to switch between until the three paths are set — the
-              screen is showing the first-run card at that point. */}
           {sync.configured && (
             <>
               <span className="flex-shrink-0 text-glyph-dimmer">/</span>
@@ -95,8 +89,6 @@ export function TopBar({
         </div>
 
         <div className="flex flex-shrink-0 items-center gap-2.5">
-          {/* D7: kept because the shell shows it everywhere, but nothing on
-              this screen is gated on it. */}
           <DeviceSelector />
           <Button
             onClick={() => void sync.openPreview()}
@@ -122,7 +114,6 @@ export function TopBar({
 
   return (
     <div className="flex w-full min-w-0 items-center justify-between gap-5">
-      {/* title · breadcrumb */}
       <div className="flex min-w-0 items-center gap-2.5">
         <span className="flex-shrink-0 text-[15px] font-semibold text-foreground">
           {screen.title}
@@ -148,8 +139,6 @@ export function TopBar({
           </>
         )}
       </div>
-
-      {/* actions */}
       <div className="flex flex-shrink-0 items-center gap-2.5">
         {isFlowsRoute && (
           <Button
@@ -162,14 +151,10 @@ export function TopBar({
             New flow
           </Button>
         )}
-
-        {/* Device list + selection come from DeviceProvider (C8) — shared with
-            the status bar, which renders the same device. */}
         <DeviceSelector />
 
         {isClientRoute && (
           <>
-            {/* Device actions, as one split control (area 25). */}
             <div
               title={
                 canResetClient || canProvision
@@ -211,7 +196,6 @@ export function TopBar({
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-60" align="end">
-                  {/* Non-destructive first, then the divider, then the wipe. */}
                   <DropdownMenuItem
                     className="cursor-pointer gap-2"
                     disabled={!canProvision}
@@ -249,8 +233,6 @@ export function TopBar({
           </>
         )}
       </div>
-
-      {/* Reset fires immediately because nothing is lost; this one wipes the app's data on the device, so it confirms. */}
       <ConfirmModal
         isOpen={confirmClear}
         onClose={() => setConfirmClear(false)}

@@ -1,8 +1,6 @@
 import { TargetConfig } from '@/types'
 import { ValueField } from './valueField'
 
-// Settings → Target (area 19).
-
 interface TargetFieldSpec {
   key: keyof TargetConfig
   label: string
@@ -48,12 +46,10 @@ export function TargetSettings({
   onChanged
 }: {
   target: TargetConfig
-  /** Re-read config in the shell — this screen never holds its own copy (18a). */
+
   onChanged: () => Promise<void> | void
 }) {
   const update = async (key: keyof TargetConfig, value: string) => {
-    // A partial, merged inside main's lock: the other four survive a screen that
-    // read them a minute ago (area 17's shape).
     await window.configAPI.updateTargetConfig({ [key]: value })
     await onChanged()
   }

@@ -3,10 +3,8 @@ import { useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { NavRail } from './navRail'
 
-// Routes that never read a project command, so the dock is 264px of chrome they have nothing to do with (sync spec D10).
 const DOCKLESS_ROUTES = new Set(['/sync', '/settings'])
 
-// Persistent workspace shell (redesign C1).
 export function Shell({
   topBar,
   dock,

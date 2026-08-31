@@ -22,21 +22,19 @@ import { FlowTab } from './tabs/flowTab'
 import { SettingsTab } from './tabs/settingsTab'
 import { SyncTab } from './tabs/syncTab'
 
-// ========================================================================= Shell context — shared state/handlers the routed screens read...
-
 export interface ShellContext {
   project: Project | null
   config: Config
-  /** What the configured target lets this session do (area 19). */
+
   target: TargetCapabilities
-  /** Re-read config from main. */
+
   reloadConfig: () => Promise<void>
   handleAddCommand: (isCommon: boolean, inputValue?: string, type?: string) => void
   handleEditCommand: (command: AdbCommand | null, isCommon: boolean) => void
   handleShowDeleteCommand: (command: AdbCommand) => void
   handleSendCommand: (command: AdbCommand) => Promise<unknown>
   handleReorderCommands: (commands: AdbCommand[]) => void
-  /** Common-command peers of the delete/reorder handlers above. */
+
   handleShowDeleteCommonCommand: (command: AdbCommand) => void
   handleReorderCommonCommands: (commands: AdbCommand[]) => void
   handleEditFlow: (flow: Flow) => void
@@ -52,8 +50,6 @@ export interface ShellContext {
 export function useShellContext() {
   return useOutletContext<ShellContext>()
 }
-
-// ========================================================================= Modal State — single discriminated union replaces ~13...
 
 type ModalState =
   | null
@@ -74,8 +70,6 @@ function ShellLayout() {
     setIsFlowRunning
   } = useFlowContext()
 
-  // ========================================================================= State...
-
   const [config, setConfig] = useState<Config>({
     saveLocation: '',
     currentDeviceId: '',
@@ -88,19 +82,15 @@ function ShellLayout() {
   const [modalState, setModalState] = useState<ModalState>(null)
   const [validationError, setValidationError] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  // Status-bar last-run readout (C8). Session-only — it reports what just
-  // happened, so there's nothing worth persisting.
+
   const [lastRun, setLastRun] = useState<LastRun | null>(null)
-  // Live provisioning progress, pushed from main (28b2).
+
   const [provisionProgress, setProvisionProgress] = useState<ProvisionProgress | null>(null)
-  // Failure only. A routine that worked says so in the status bar; a routine that
-  // stopped has a step list worth reading (§1.15).
+
   const [provisionFailure, setProvisionFailure] = useState<{
     result: ProvisionResult
     lead?: string
   } | null>(null)
-
-  // ========================================================================= Data Loading...
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -126,7 +116,6 @@ function ShellLayout() {
     loadInitialData()
   }, [])
 
-  // Settings edits fields this component doesn't own (paths, and after a snapshot restore or bundle import, all of them), so it needs a way...
   const reloadConfig = useCallback(async () => {
     try {
       setConfig(await window.configAPI.getConfig())
@@ -136,7 +125,6 @@ function ShellLayout() {
     }
   }, [])
 
-  // The app's only main → renderer subscription (28b2).
   useEffect(() => window.provisionAPI.onProgress(setProvisionProgress), [])
 
   useEffect(() => {
@@ -146,14 +134,10 @@ function ShellLayout() {
     }
   }, [config.recentProjectId, projects])
 
-  // ========================================================================= Modal Helpers...
-
   const closeModal = useCallback(() => {
     setModalState(null)
     setValidationError(false)
   }, [])
-
-  // ========================================================================= Command Handlers...
 
   const handleAddCommand = (isCommon: boolean, inputValue?: string, type?: string) => {
     setModalState({
@@ -184,7 +168,6 @@ function ShellLayout() {
   const handleSaveCommand = (updatedCommand: AdbCommand, previousCommand?: AdbCommand | null) => {
     if (!modalState) return
 
-    // Save command to flow
     if (modalState.modal === 'command-flow') {
       if (!project) return
       const { flow, isEditing } = modalState
@@ -206,7 +189,6 @@ function ShellLayout() {
     if (modalState.modal !== 'command') return
     const { isCommon, isEditing } = modalState
 
-    // Validate: only block when editing and keyword changed to an existing one
     const existingCommands = isCommon ? config.commonCommands : (project?.commands ?? [])
     if (isEditing && previousCommand && previousCommand.keyword !== updatedCommand.keyword) {
       const duplicate = existingCommands.some((c) => c.keyword === updatedCommand.keyword)
@@ -239,8 +221,6 @@ function ShellLayout() {
       closeModal()
     }
   }
-
-  // ========================================================================= Delete Handlers...
 
   const handleShowDeleteModal = useCallback(
     (command: AdbCommand) => {
@@ -280,15 +260,11 @@ function ShellLayout() {
     [config.commonCommands]
   )
 
-  // ========================================================================= Reordering & Sending...
-
   const handleReorderCommonCommands = (reorderedCommands: AdbCommand[]) => {
     setConfig((prev) => ({ ...prev, commonCommands: reorderedCommands }))
     window.configAPI.updateCommonCommands(reorderedCommands)
   }
 
-  // Persist project-command order (C4 unified list). Previously the command
-  // table reordered in local state only, so drags were lost on reload.
   const handleReorderCommands = (reorderedCommands: AdbCommand[]) => {
     if (!project) return
     const updatedProject = { ...project, commands: reorderedCommands }
@@ -296,7 +272,6 @@ function ShellLayout() {
     window.projectAPI.saveProject(updatedProject)
   }
 
-  // Every ADB command in the app runs through here — command rows, dock rows, the command bar, and each flow step — which makes it the one...
   const handleSendCommand = useCallback(async (command: AdbCommand) => {
     const startedAt = performance.now()
     const label = command.name || command.keyword
@@ -313,8 +288,6 @@ function ShellLayout() {
       throw error
     }
   }, [])
-
-  // ========================================================================= Flow Handlers...
 
   const handleSaveFlow = async (updatedFlow: Flow, isNewFlow: boolean) => {
     if (!project) return
@@ -425,8 +398,6 @@ function ShellLayout() {
     window.projectAPI.saveProject(updatedProject)
   }
 
-  // 21a: flow cards render in stored array order, and until now the only way to
-  // change it was editing the `flows` array in `{id}.project.json` by hand.
   const handleReorderFlows = (reorderedFlows: Flow[]) => {
     if (!project) return
     const updatedProject = { ...project, flows: reorderedFlows }
@@ -434,7 +405,6 @@ function ShellLayout() {
     window.projectAPI.saveProject(updatedProject)
   }
 
-  // 21b: dropping a dock command onto a flow card appends a *copy* — the global library entry stays where it is, and the flow gets its own...
   const handleDropCommandOnFlow = (flow: Flow, command: AdbCommand) => {
     if (!project) return
     const updatedFlows = project.flows.map((f) =>
@@ -454,8 +424,6 @@ function ShellLayout() {
     setProject(updatedProject)
     window.projectAPI.saveProject(updatedProject)
   }
-
-  // ========================================================================= Flow Execution...
 
   const sleep = (ms: number, signal: AbortSignal) => {
     return new Promise<void>((resolve, reject) => {
@@ -486,8 +454,7 @@ function ShellLayout() {
     try {
       for (let i = 0; i < flow.commands.length; i++) {
         if (controller.signal.aborted) break
-        // Publish which command is executing so the flow card can mark rows
-        // done / running / queued (C5 per-row status).
+
         setRunningCommandIndex(i)
         try {
           await handleSendCommand(flow.commands[i])
@@ -498,7 +465,6 @@ function ShellLayout() {
         }
       }
     } catch {
-      // Flow execution error
     } finally {
       setIsFlowRunning(false)
       setRunningFlowId(null)
@@ -506,8 +472,6 @@ function ShellLayout() {
       setAbortController(null)
     }
   }
-
-  // ========================================================================= Utility Handlers...
 
   const handleRefreshProject = async () => {
     if (!project || !config.recentProjectId) return
@@ -530,7 +494,6 @@ function ShellLayout() {
     }
   }
 
-  // Both device actions report through the status bar's last-run readout (area 25), the same slot `handleSendCommand` writes.
   const runDeviceAction = useCallback(
     async <T extends { success: boolean }>(
       label: string,
@@ -549,7 +512,6 @@ function ShellLayout() {
         setLastRun({ label, ms: Math.round(performance.now() - startedAt), ok: false })
         return null
       } finally {
-        // Whatever happened, no routine is running now.
         setProvisionProgress(null)
       }
     },
@@ -561,7 +523,6 @@ function ShellLayout() {
     [runDeviceAction]
   )
 
-  // A clear carries its routine's outcome (28a's `ClearStorageResult.provision`).
   const handleClearStorage = useCallback(async () => {
     const result = await runDeviceAction('Clear storage', () => window.adbAPI.clearStorage())
     if (result?.provision && !result.provision.success) {
@@ -572,25 +533,19 @@ function ShellLayout() {
     }
   }, [runDeviceAction])
 
-  // The steps alone — no force-stop, no relaunch. Reset client is one click away
-  // in the same control, so pairing them is the user's call (area 28).
   const handleRunProvision = useCallback(async () => {
     const result = await runDeviceAction('Provisioning', () => window.provisionAPI.run())
     if (result && !result.success) setProvisionFailure({ result })
   }, [runDeviceAction])
 
-  // Dock collapse — state lives in config (persisted across sessions, C1b).
   const dockCollapsed = config.dockCollapsed ?? false
 
   const handleToggleDock = useCallback(() => {
     const next = !dockCollapsed
     setConfig((prev) => ({ ...prev, dockCollapsed: next }))
-    // Persist outside the state updater so a rejected/absent IPC can never
-    // throw during render and take down the tree.
+
     void window.configAPI.updateDockCollapsed(next)
   }, [dockCollapsed])
-
-  // Render
 
   if (isLoading) {
     return (
@@ -624,8 +579,6 @@ function ShellLayout() {
     handleReorderFlowCommands
   }
 
-  // Live flow progress for the status bar (C8). `runningCommandIndex` is the
-  // 0-based position the run loop is on; the bar reads it as `step X/Y`.
   const runningFlow = runningFlowId
     ? (project?.flows.find((f) => f.id === runningFlowId) ?? null)
     : null
@@ -649,7 +602,6 @@ function ShellLayout() {
       onClearStorage={handleClearStorage}
       onRunProvision={handleRunProvision}
       canResetClient={target.reset}
-      /* Content, not presence (§1.12): the gate is whether there is a routine at all. */
       canProvision={(config.provision?.steps.length ?? 0) > 0}
       onOpenProjectFile={handleOpenProjectFile}
     />
@@ -674,8 +626,6 @@ function ShellLayout() {
         config={config}
         onDeviceChange={(deviceId) => setConfig((prev) => ({ ...prev, currentDeviceId: deviceId }))}
       >
-        {/* Spans the dock and the routed screen, because 21's drags cross
-            between them (see `shellDndContext.tsx`). */}
         <ShellDndProvider
           commonCommands={config.commonCommands}
           flows={project?.flows ?? []}
@@ -701,7 +651,6 @@ function ShellLayout() {
         </ShellDndProvider>
       </DeviceProvider>
 
-      {/* Modals — 3 instances instead of 7 */}
       {(modalState?.modal === 'command' || modalState?.modal === 'command-flow') && (
         <CommandModal
           isOpen={true}
@@ -726,9 +675,6 @@ function ShellLayout() {
         />
       )}
 
-      {/* Outside the shell like the other three: a routine can be started from
-          any client route, and the report is about the device rather than the
-          screen that launched it. */}
       {provisionFailure && (
         <ProvisionResultModal
           isOpen={true}
@@ -752,8 +698,6 @@ function ShellLayout() {
     </>
   )
 }
-
-// Routed screens — thin wrappers that read shell context and render the existing screen internals (redesign C1a: internals unchanged this...
 
 export function CommandScreen() {
   const s = useShellContext()
@@ -794,22 +738,16 @@ export function ConsoleScreen() {
   return <ConsoleTab currentDeviceId={s.config.currentDeviceId} canRun={s.target.scripts} />
 }
 
-// D7: the only screen not gated on a device, so it reads nothing off the shell
-// context — its own provider supplies everything it needs.
 export function SyncScreen() {
   return <SyncTab />
 }
 
-// 18a: Settings moved under the layout route, so it's a routed screen like the
-// rest rather than a sibling of the whole shell.
 export function SettingsScreen() {
   const s = useShellContext()
   return (
     <SettingsTab
       config={s.config}
       onConfigChanged={s.reloadConfig}
-      // 18b2: the Common commands section drives the same handlers the dock
-      // does — the dock is hidden on this route, not the editing path.
       onAddCommonCommand={() => s.handleAddCommand(true, undefined, 'barcode')}
       onEditCommonCommand={(command) => s.handleEditCommand(command, true)}
       onDeleteCommonCommand={s.handleShowDeleteCommonCommand}
@@ -818,7 +756,6 @@ export function SettingsScreen() {
   )
 }
 
-// Layout route element: shared state + shell chrome.
 export function Dashboard() {
   return (
     <FlowProvider>

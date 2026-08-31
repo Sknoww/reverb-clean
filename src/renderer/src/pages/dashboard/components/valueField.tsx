@@ -1,9 +1,6 @@
 import { cn } from '@/lib/utils'
 import { useEffect, useState } from 'react'
 
-// The app's one free-text settings control, promoted out of `settingsTarget.tsx` in 19c when Sync's deployment key needed the same thing...
-
-/** Commit on blur or Enter, never per keystroke — the same rule 18b's number and select controls follow, and for the same reason: every... */
 export function ValueField({
   label,
   hint,
@@ -13,15 +10,13 @@ export function ValueField({
 }: {
   label: string
   hint: string
-  /** An example of the *form* the value takes — never a real installation's. */
+
   placeholder: string
   value: string
   onCommit: (value: string) => void
 }) {
   const [text, setText] = useState(value)
 
-  // Follow config when it changes underneath — a snapshot restore or a bundle
-  // import replaces these without the control being touched.
   useEffect(() => {
     setText(value)
   }, [value])

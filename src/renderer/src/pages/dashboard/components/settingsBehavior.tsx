@@ -7,14 +7,11 @@ import {
   SettingsSelect
 } from './settingsSection'
 
-// Settings' Behavior and Logging sections (area 18b) — the values that were compiled-in constants until now.
-
 const BOUNDS = {
   flowDelayMs: { min: 0, max: 600_000 },
   adbTimeoutMs: { min: 1_000, max: 300_000 },
   jsTimeoutMs: { min: 1_000, max: 300_000 },
-  // Wider at both ends than the two above (28a's block, surfaced in 28b1): a
-  // routine of small shell steps wants seconds, a folder push wants half an hour.
+
   provisionTimeoutMs: { min: 5_000, max: 1_800_000 },
   maxAgeDays: { min: 1, max: 365 },
   maxFiles: { min: 1, max: 500 }
@@ -43,8 +40,6 @@ export function BehaviorSettings({
     <>
       <SettingsNumber
         label="New flow delay"
-        // The distinction that stops this reading as a global override: flows
-        // carry their own delay once created, and this only seeds the next one.
         hint="Seeds the inter-command delay of a new flow. Existing flows keep their own."
         unit="ms"
         value={behavior.flowDelayMs}
@@ -78,8 +73,6 @@ export function BehaviorSettings({
       />
 
       <SettingsDivider />
-
-      {/* 28b1. */}
       <SettingsNumber
         label="Provisioning timeout"
         hint="Ceiling on a single provisioning step. Its own bound because a folder push is minutes, not seconds."
@@ -114,8 +107,6 @@ export function LoggingSettings({
     <>
       <SettingsSelect
         label="Level"
-        // Worth stating: winston's level is settable at runtime, so main
-        // re-applies it on every config write rather than at launch only.
         hint="Applies immediately — no restart. `debug` is loud; it logs every ADB invocation."
         value={logging.level}
         options={LOG_LEVELS}

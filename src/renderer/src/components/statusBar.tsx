@@ -6,10 +6,7 @@ import { ProvisionProgress } from '@/types'
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 
-// Persistent shell status bar (redesign C8).
-
 export interface LastRun {
-  // Command name, falling back to its keyword.
   label: string
   ms: number
   ok: boolean
@@ -21,7 +18,6 @@ export interface FlowProgress {
   total: number
 }
 
-// Per-route keyboard hint.
 const HINTS: Record<string, string> = {
   '/': `${COMMAND_BAR_KEY} command bar`
 }
@@ -30,13 +26,11 @@ function formatDuration(ms: number): string {
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`
 }
 
-/** Last path segment — the checkout's own name is what identifies it here. */
 function checkoutName(connectorRoot: string): string {
   const parts = connectorRoot.replace(/\\/g, '/').split('/').filter(Boolean)
   return parts[parts.length - 1] ?? ''
 }
 
-/** The last two segments, as drawn in the frames; the full id is the tooltip. */
 function shortPackage(packageId: string): string {
   return packageId.split('.').slice(-2).join('.')
 }
@@ -49,16 +43,15 @@ export function StatusBar({
 }: {
   lastRun: LastRun | null
   flowProgress: FlowProgress | null
-  /** A provisioning routine mid-run (28b2), pushed from main step by step. */
+
   provisionProgress: ProvisionProgress | null
-  /** The configured target package (area 19) — a constant of this tool until 19, mirrored here from main by hand. */
+
   packageId: string
 }) {
   const { activeDevice } = useDeviceContext()
   const { pathname } = useLocation()
   const [adbVersion, setAdbVersion] = useState<string | null>(null)
 
-  // Sync's readout (S2, frame 6a).
   const sync = useSyncContext()
   const isSyncRoute = pathname === '/sync'
 
@@ -94,12 +87,11 @@ export function StatusBar({
                 {checkoutName(sync.scan.connectorRoot)}
               </span>
             )}
-            {/* D13: degrades silently — no branch when it isn't a checkout. */}
+
             {sync.scan?.branch && <span className="flex-shrink-0">branch {sync.scan.branch}</span>}
           </>
         ) : (
           <>
-            {/* Omitted rather than guessed when adb can't be read. */}
             {adbVersion && <span className="flex-shrink-0">adb {adbVersion}</span>}
             {packageId && (
               <span className="flex-shrink-0 truncate" title={packageId}>
@@ -137,13 +129,6 @@ export function StatusBar({
           </>
         ) : (
           <>
-            {/* Precedence: a provisioning routine, else a running flow, else the
-                last run. A flow owns the slot over last-run because its steps
-                write last-run too, which would otherwise churn the text on
-                every command; provisioning owns it over both for the reason on
-                the prop. The label is the tooltip rather than inline — the step
-                names here are shell command lines and push paths, which would
-                push the count off the end of the bar. */}
             {provisionProgress ? (
               <span
                 className="flex items-center gap-1.5 text-success"

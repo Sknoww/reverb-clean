@@ -1,6 +1,5 @@
 'use client'
 
-// Inspired by react-hot-toast library
 import * as React from 'react'
 
 import type { ToastActionElement, ToastProps } from '@/components/ui/toast'
@@ -22,8 +21,6 @@ function genId() {
   return count.toString()
 }
 
-// Type-only: the action names are never read at runtime, so declaring them as a
-// type rather than a `const` object keeps them out of the bundle.
 type ActionType = {
   ADD_TOAST: 'ADD_TOAST'
   UPDATE_TOAST: 'UPDATE_TOAST'
@@ -88,8 +85,6 @@ export const reducer = (state: State, action: Action): State => {
     case 'DISMISS_TOAST': {
       const { toastId } = action
 
-      // ! Side effects ! - This could be extracted into a dismissToast() action,
-      // but I'll keep it here for simplicity
       if (toastId) {
         addToRemoveQueue(toastId)
       } else {

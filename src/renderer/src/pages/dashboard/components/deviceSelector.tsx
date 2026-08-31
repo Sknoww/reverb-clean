@@ -11,10 +11,6 @@ import React from 'react'
 import { LuCheck, LuChevronDown, LuRefreshCcw } from 'react-icons/lu'
 import { useDeviceContext } from '../contexts/deviceContext'
 
-// Device pill (redesign C2).
-
-// The pill shows an abbreviated id beside the model name (the status bar carries
-// the full one). ADB ids are either colon-grouped MACs or plain serials/host:port.
 export function shortDeviceId(id: string): string {
   const parts = id.split(':')
   if (parts.length > 2) return parts.slice(0, 2).join(':')
@@ -28,7 +24,7 @@ export const DeviceSelector: React.FC = () => {
   const active = activeDevice
   const connected = !!active
   const label = active ? (active.model ?? active.id) : 'No device'
-  // Only worth showing the id fragment when the name above it isn't already the id.
+
   const idFragment = active?.model ? shortDeviceId(active.id) : ''
 
   return (
@@ -91,7 +87,6 @@ export const DeviceSelector: React.FC = () => {
         <DropdownMenuItem
           className="cursor-pointer gap-2"
           disabled={loading}
-          // Keep the menu open so the refreshed list is visible in place.
           onSelect={(event) => {
             event.preventDefault()
             void refresh()

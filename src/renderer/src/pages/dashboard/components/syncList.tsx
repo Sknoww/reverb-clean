@@ -4,23 +4,17 @@ import { SyncEntry } from '@/types'
 import { ChevronDown, ChevronRight, ExternalLink, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
-// The zone list (S2, frames 6a / 6b / 6e).
-
 const GRID = '30px minmax(150px,1fr) 200px 130px minmax(220px,1.6fr) 36px'
 
-/** What Apply will do to this row — the row's *staged* state, not its scanned status. */
 export type RowState = 'add' | 'remove' | 'bump' | 'current' | 'available' | 'orphan'
 
 export function rowStateOf(entry: SyncEntry, selected: boolean): RowState {
-  // An orphan kept selected stays put — there's no source entry to bump it to.
   if (entry.status === 'orphan') return selected ? 'orphan' : 'remove'
   if (entry.inTarget && !selected) return 'remove'
   if (!entry.inTarget) return selected ? 'add' : 'available'
   return entry.status === 'outOfDate' ? 'bump' : 'current'
 }
 
-// A 2px inset left rule plus a low-percentage tint, rather than a fourth hue —
-// the status column already names the state, so the row only has to be scannable.
 const ROW_ACCENT: Partial<Record<RowState, string>> = {
   bump: 'bg-stale/[0.045] shadow-[inset_2px_0_0_hsl(var(--stale))]',
   add: 'bg-mono-keyword/[0.05] shadow-[inset_2px_0_0_hsl(var(--mono-keyword))]',
@@ -29,18 +23,16 @@ const ROW_ACCENT: Partial<Record<RowState, string>> = {
 
 const REVEAL_LABEL = navigator.platform.startsWith('Mac') ? 'Reveal in Finder' : 'Show in Explorer'
 
-/** `2025-03-19` → `2025_03_19`, matching how the version reads in the filename. */
 function formatVersion(date: string | null, revision: number | null): string {
   if (!date) return ''
   return `${date.replace(/-/g, '_')}${revision === null ? '' : `_${revision}`}`
 }
 
-// Deliberately borderless.
 function Badge({ tone, children }: { tone: 'add' | 'remove' | 'stale'; children: string }) {
   const tones = {
     add: 'text-accent-indigo-bright bg-nav-active',
     remove: 'text-red-300 bg-destructive/50',
-    // Lifted from /10 to hold its own now that the border is gone.
+
     stale: 'text-stale bg-stale/[0.16]'
   }
   return (
@@ -56,8 +48,6 @@ function Badge({ tone, children }: { tone: 'add' | 'remove' | 'stale'; children:
 }
 
 function StatusCell({ state, fileMissing }: { state: RowState; fileMissing: boolean }) {
-  // `NO FILE` reuses the stale token as a *second* badge rather than earning a
-  // third colour — it's a caveat on the row's state, not a state of its own.
   const missing = fileMissing && <Badge tone="stale">NO FILE</Badge>
 
   if (state === 'add') {
@@ -145,7 +135,7 @@ interface RowProps {
 function SyncRow({ entry, selected, onToggle }: RowProps) {
   const state = rowStateOf(entry, selected)
   const fileName = entry.sourceFileName ?? entry.targetFileName ?? ''
-  // Only rows that actually exist on disk get a reveal action.
+
   const revealable = !entry.fileMissing && Boolean(entry.localPath)
 
   return (
@@ -187,7 +177,6 @@ function SyncRow({ entry, selected, onToggle }: RowProps) {
         {fileName}
       </span>
 
-      {/* An orphan's one useful action is dropping it, not finding it (6e). */}
       {state === 'orphan' ? (
         <button
           type="button"
@@ -221,9 +210,9 @@ interface SectionProps {
   selected: Set<string>
   onToggle: (zone: string, next: boolean) => void
   onToggleMany: (zones: string[], next: boolean) => void
-  /** Orphans get their own header treatment and a single Drop-all. */
+
   orphan?: boolean
-  /** The list header already draws a divider above the first section. */
+
   first?: boolean
 }
 
@@ -274,14 +263,11 @@ function Section({
           </span>
         )}
         <div className="flex-1" />
-        {/* Bordered, because in this list a border is what marks something
-            pressable — as plain text it read as a caption. */}
+
         <button
           type="button"
           onClick={() => onToggleMany(zones, orphan ? false : chosen < zones.length)}
           className={cn(
-            // Fixed width so the chip doesn't resize as its label flips
-            // between Select all / Clear all on every tick.
             'flex h-6 w-[76px] flex-shrink-0 items-center justify-center rounded-md border text-[11px] transition-colors',
             orphan
               ? 'border-destructive/60 text-red-300 hover:border-destructive hover:bg-destructive/20'
@@ -362,8 +348,6 @@ export function SyncList({
         />
       ))}
 
-      {/* Orphans are pinned below the sections: they have no source directory to
-          sit under, and grouping them makes "drop all" a single gesture (6e). */}
       {orphans.length > 0 && (
         <Section
           orphan

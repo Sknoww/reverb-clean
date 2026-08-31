@@ -1,8 +1,6 @@
 import { LuTrash2 } from 'react-icons/lu'
 import { ConfirmModal } from './confirmModal'
 
-// The app's generic delete confirmation — command rows, dock rows, flows, and flow-command removal all route through Dashboard's `delete`...
-
 export function DeleteModal({
   isOpen,
   onClose,

@@ -17,7 +17,6 @@ function App(): JSX.Element {
   return (
     <div className="app">
       <Routes>
-        {/* Every screen is a child of the layout route. */}
         <Route element={<Dashboard />}>
           <Route path="/" element={<CommandScreen />} />
           <Route path="/flows" element={<FlowScreen />} />

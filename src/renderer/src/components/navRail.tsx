@@ -6,7 +6,7 @@ import logo from '../assets/icon.png'
 
 interface NavItem {
   to: string
-  // Full name for tooltip / a11y; `label` is the short rail caption.
+
   name: string
   label?: string
   Icon: ComponentType<{ className?: string }>
@@ -16,8 +16,7 @@ const PRIMARY_ITEMS: NavItem[] = [
   { to: '/', name: 'Commands', label: 'Cmds', Icon: Command },
   { to: '/flows', name: 'Flows', label: 'Flows', Icon: Workflow },
   { to: '/console', name: 'Console', label: 'Cons', Icon: SquareTerminal },
-  // Sync's `⇅` (spec D1). `RefreshCw` is taken by project-reload and `Workflow`
-  // by Flows, so neither of the obvious glyphs was available.
+
   { to: '/sync', name: 'Sync', label: 'Sync', Icon: ArrowUpDown }
 ]
 

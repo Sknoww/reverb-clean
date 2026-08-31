@@ -3,14 +3,12 @@ const path = require('path')
 const fs = require('fs')
 
 exports.default = function (context) {
-  // Only run for macOS builds
   if (context.electronPlatformName !== 'darwin') {
     return
   }
 
   console.log('Mac build context:', context.appOutDir)
 
-  // List directories to check what's actually there
   console.log('Listing Resources directory:')
   try {
     execSync(`ls -la "${context.appOutDir}/Reverb.app/Contents/Resources/"`, { stdio: 'inherit' })
@@ -18,7 +16,7 @@ exports.default = function (context) {
     console.log('Error listing Resources directory:', err.message)
   }
 
-  // `extraResources: ['./extraResources/']` keeps the directory name, so the binary lands at Contents/Resources/extraResources/adbMac/adb —...
+  // extraResources keeps its directory name inside the app bundle.
   const possiblePaths = [
     path.join(context.appOutDir, 'Reverb.app/Contents/Resources/extraResources/adbMac/adb'),
     path.join(context.appOutDir, 'Reverb.app/Contents/Resources/extraResources/adb')
@@ -44,7 +42,7 @@ exports.default = function (context) {
 
   if (!adbFound) {
     console.log('ADB executable not found. Searching in app directory...')
-    // Try to find adb executable recursively
+
     try {
       const result = execSync(`find "${context.appOutDir}" -name "adb" -type f`, {
         encoding: 'utf8'

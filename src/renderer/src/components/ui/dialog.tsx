@@ -27,11 +27,9 @@ const DialogOverlay = React.forwardRef<
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
-/** The card is centred by a 50% offset plus a translate, so a card taller than the window overflows it *symmetrically* — clipped at the top... */
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
-    /** Renders the built-in corner close button. */
     showCloseButton?: boolean
   }
 >(({ className, children, showCloseButton = true, ...props }, ref) => (
@@ -57,7 +55,6 @@ const DialogContent = React.forwardRef<
 ))
 DialogContent.displayName = DialogPrimitive.Content.displayName
 
-// `shrink-0` here and on the footer is inert in a plain grid dialog; it is what pins them either side of the scrolling body once a card...
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn('flex shrink-0 flex-col space-y-1.5 text-center sm:text-left', className)}

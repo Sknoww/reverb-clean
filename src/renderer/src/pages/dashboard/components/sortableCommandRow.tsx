@@ -6,10 +6,8 @@ import { CSS } from '@dnd-kit/utilities'
 import { Loader2 } from 'lucide-react'
 import { LuCheck, LuCopy, LuGripVertical, LuPencil, LuPlay, LuTrash2 } from 'react-icons/lu'
 
-// Flow command row status during a run (C5). idle = flow not running.
 export type FlowRowStatus = 'idle' | 'queued' | 'running' | 'done'
 
-// Shared grid language from C4 (commandTable.tsx), with the Flows screen's own widths + a leading status column.
 export const FLOW_GRID = '26px 30px 84px 150px 116px 1fr 130px 152px'
 
 const TYPE_STYLES: Record<string, { dot: string; label: string }> = {
@@ -40,7 +38,7 @@ interface SortableCommandRowProps {
   onDeleteCommand: (flow: Flow, command: AdbCommand) => void
   onSendCommand: (command: AdbCommand) => void
   onCopyCommand: (flow: Flow, command: AdbCommand) => void
-  /** An intent action is configured (area 19). Everything else on the row stays. */
+
   canSend: boolean
 }
 
@@ -90,7 +88,6 @@ export function SortableCommandRow({
         status === 'running' && 'bg-success/5'
       )}
     >
-      {/* drag handle */}
       <span
         {...attributes}
         {...listeners}
@@ -99,39 +96,30 @@ export function SortableCommandRow({
       >
         <LuGripVertical size={15} />
       </span>
-
-      {/* status */}
       <span className="flex items-center justify-center">
         <StatusCell status={status} />
       </span>
-
-      {/* type */}
       <span className={`flex items-center gap-2 text-xs ${typeStyle.label}`}>
         <span className={`h-2 w-2 flex-shrink-0 rounded-[2px] ${typeStyle.dot}`} aria-hidden />
         {command.type}
       </span>
 
-      {/* name */}
       <span className="truncate pr-3 font-medium text-foreground" title={command.name}>
         {command.name}
       </span>
 
-      {/* keyword */}
       <span className="truncate pr-3 font-mono text-mono-keyword" title={command.keyword}>
         {command.keyword}
       </span>
 
-      {/* value */}
       <span className="truncate pr-3 font-mono text-muted-foreground" title={command.value}>
         {command.value}
       </span>
 
-      {/* description */}
       <span className="truncate pr-3 text-text-dim" title={command.description}>
         {command.description}
       </span>
 
-      {/* actions — icon buttons, visible at rest, each with a hover tint */}
       <span className="flex items-center justify-end gap-0.5">
         <button
           type="button"

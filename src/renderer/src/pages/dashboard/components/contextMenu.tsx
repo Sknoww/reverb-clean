@@ -24,7 +24,6 @@ export function ContextMenu({ onOpenProjectFile, hasProject }: ContextMenuProps)
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        {/* C2: a bordered 34px square with a horizontal ⋯ — a peer of the device pill and Reset client in the top bar's right cluster, not a... */}
         <button
           type="button"
           aria-label="More actions"

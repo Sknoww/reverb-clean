@@ -11,11 +11,6 @@ import {
 } from 'react'
 import { useLocation } from 'react-router-dom'
 
-// Sync screen state (S2), lifted above the shell's <Outlet> for the same reason `DeviceProvider` was (C8): more than one region renders it.
-
-// Profiles (S3, spec D5, frames 6b/6f) are named *sets of zones*, stored in app config.
-
-/** Locally derived counterpart of the manager's plan — drives the Apply badge. */
 export interface SyncPending {
   adds: string[]
   removes: string[]
@@ -26,18 +21,16 @@ export interface SyncPending {
 interface SyncContextType {
   scan: SyncScanResult | null
   scanning: boolean
-  /** Re-reads both YAMLs (rule 3: never cached — source moves on every branch switch). */
+
   rescan: () => Promise<void>
-  /** All four values set — false means the first-run card (frame 6d). */
+
   configured: boolean
 
-  /** Zones that should be in the local YAML after Apply. */
   selected: Set<string>
   toggleZone: (zone: string, next: boolean) => void
   setZones: (zones: string[], next: boolean) => void
   pending: SyncPending
 
-  /** Apply preview (frame 6c) — the one destructive moment (D9). */
   previewOpen: boolean
   openPreview: () => void
   closePreview: () => void
@@ -47,31 +40,30 @@ interface SyncContextType {
   applying: boolean
   applyError: string | null
   apply: () => Promise<void>
-  /** `✓ wrote N changes`, shown briefly in the status bar after a write. */
+
   applyNotice: string | null
-  /** Wall-clock of the last successful scan, for the status bar. */
+
   scannedAt: Date | null
 
-  // ---- profiles (S3) ------------------------------------------------------
   profiles: SyncProfile[]
   activeProfile: SyncProfile | null
-  /** Selection has drifted from the active profile — the `MODIFIED` badge. */
+
   profileDirty: boolean
-  /** Profile zones this scan can't represent — skip-with-notice, per profile. */
+
   missingZones: (profile: SyncProfile) => string[]
-  /** Set as the selection (D5), minus anything the scan doesn't know about. */
+
   selectProfile: (id: string) => Promise<void>
-  /** Stamp the current selection onto the active profile. */
+
   saveActiveProfile: () => Promise<void>
-  /** Put the selection back to what the active profile holds. */
+
   revertToProfile: () => void
-  /** Save the current selection as a new profile, and make it active. */
+
   createProfile: (name: string) => Promise<void>
   renameProfile: (id: string, name: string) => Promise<void>
   deleteProfile: (id: string) => Promise<void>
-  /** Drop the profile link, keep the selection — frame 6f's ad-hoc state. */
+
   detachProfile: () => Promise<void>
-  /** `Skipped N zones…` after selecting a profile with zones this scan lacks. */
+
   profileNotice: string | null
 }
 
@@ -85,7 +77,6 @@ export function useSyncContext() {
   return context
 }
 
-/** The baseline selection: whatever the local YAML already deploys. */
 const zonesInTarget = (entries: SyncEntry[]): Set<string> =>
   new Set(entries.filter((entry) => entry.inTarget).map((entry) => entry.zone))
 
@@ -110,8 +101,6 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null)
   const [profileNotice, setProfileNotice] = useState<string | null>(null)
 
-  // Profiles live in app config, not in the YAML — read once; every mutation
-  // below writes through `persistProfiles`, so config and state can't drift.
   useEffect(() => {
     void window.configAPI.getConfig().then((config) => {
       setProfiles(config.sync?.profiles ?? [])
@@ -119,8 +108,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  // Whether anything is staged. Read by `rescan` without making it depend on
-  // the selection, so a re-scan never re-runs just because a box was ticked.
+  // Rescans must not replace a selection with pending edits.
   const stagedRef = useRef(false)
 
   const rescan = useCallback(async () => {
@@ -128,11 +116,11 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     try {
       const result = await window.syncAPI.scan()
       setScan(result)
-      // A failed scan leaves the previous selection alone — re-seeding from an
-      // empty entry list would silently stage a removal of everything.
+
+      // Preserve the previous selection when a scan fails.
       if (!result.ok) return
       setScannedAt(new Date())
-      // Re-seed from the local YAML unless the tester has staged something.
+
       if (!stagedRef.current) setSelected(zonesInTarget(result.entries))
     } catch (error) {
       console.error('Sync scan failed:', error)
@@ -141,7 +129,6 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Rule 3: the source file changes behind the app's back on every branch switch, so entering the route is always a fresh read — and nothing...
   const { pathname } = useLocation()
   useEffect(() => {
     if (pathname !== '/sync') return
@@ -168,7 +155,6 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  // Mirrors `buildPlan` in syncManager: an unselected target entry is a remove, a selected non-target entry an add, and a selected...
   const pending = useMemo<SyncPending>(() => {
     const entries = scan?.entries ?? []
     const adds: string[] = []
@@ -194,8 +180,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     setApplyError(null)
     setPlanning(true)
     try {
-      // The preview is the manager's plan, never the locally derived one — the
-      // renderer's `pending` sizes a badge, the main process owns the truth.
+      // The main process owns the authoritative preview.
       const result = await window.syncAPI.plan([...selected])
       if (result.ok && result.plan) setPlan(result.plan)
       else setPlanError(result.error ?? 'Could not build the apply preview.')
@@ -217,7 +202,6 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     try {
       const result: SyncApplyResult = await window.syncAPI.apply([...selected])
       if (!result.success) {
-        // Rule 7 / frame 6c: failure keeps the modal open with the error.
         setApplyError(result.error ?? 'The write failed. Nothing was written.')
         return
       }
@@ -227,7 +211,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         : 0
       setPreviewOpen(false)
       setApplyNotice(`✓ wrote ${written} change${written === 1 ? '' : 's'}`)
-      // Success settles inline — re-scan so every written row reads `current`.
+
       await rescan()
     } catch (error: any) {
       setApplyError(error?.message ?? 'The write failed. Nothing was written.')
@@ -242,9 +226,6 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timer)
   }, [applyNotice])
 
-  // ---- profiles (S3) -------------------------------------------------------
-
-  /** Every zone this scan knows — source, target, or both. */
   const knownZones = useMemo(
     () => new Set((scan?.ok ? scan.entries : []).map((entry) => entry.zone)),
     [scan]
@@ -260,9 +241,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     [knownZones]
   )
 
-  // Dirty compares against what the profile can *currently* express: a zone the scan doesn't carry can't be ticked, so counting it would...
   const profileDirty = useMemo(() => {
     if (!activeProfile || !scan?.ok) return false
+    // Missing zones cannot be selected, so exclude them from this comparison.
     return !sameZones(
       selected,
       activeProfile.zones.filter((zone) => knownZones.has(zone))
@@ -272,8 +253,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const persistProfiles = useCallback(async (next: SyncProfile[], activeId: string | null) => {
     setProfiles(next)
     setActiveProfileId(activeId)
-    // '' is the detach signal — `updateSyncConfig` merges partials, so an
-    // omitted key would keep the old value rather than clear it.
+
+    // An empty id explicitly detaches; omitting it would preserve the old profile.
     await window.configAPI.updateSyncConfig({ profiles: next, activeProfileId: activeId ?? '' })
   }, [])
 
@@ -301,8 +282,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
   const saveActiveProfile = useCallback(async () => {
     if (!activeProfile) return
-    // Stamping drops zones this scan couldn't show — which is what "save
-    // changes" means; the tester is looking at the set they're saving.
+
     const next = profiles.map((profile) =>
       profile.id === activeProfile.id ? { ...profile, zones: [...selected] } : profile
     )
@@ -333,8 +313,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const deleteProfile = useCallback(
     async (id: string) => {
       const next = profiles.filter((profile) => profile.id !== id)
-      // Deleting the active one leaves the selection alone — it's the tester's
-      // working set (rule 8), and it only loses its label.
+
+      // Deleting the active profile keeps its current zone selection.
       await persistProfiles(next, activeProfileId === id ? null : activeProfileId)
     },
     [profiles, activeProfileId, persistProfiles]
@@ -350,7 +330,6 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timer)
   }, [profileNotice])
 
-  // 19c added the deployment key.
   const configured = Boolean(
     scan?.connectorRoot && scan?.sourceFile && scan?.targetFile && scan?.deploymentPath
   )

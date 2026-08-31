@@ -46,14 +46,13 @@ interface FlowCardProps {
   onDeleteCommand: (flow: Flow, command: AdbCommand) => void
   onReorderCommands: (flow: Flow, commands: AdbCommand[]) => void
   onSendCommand: (command: AdbCommand) => void
-  /** An intent action is configured (area 19) — Run is off without one, editing isn't. */
+
   canSend: boolean
-  /** Body hidden, header only. Owned by `flowTab.tsx` so Collapse all can drive it. */
+
   collapsed: boolean
   onToggleCollapse: (flow: Flow) => void
 }
 
-// The card header is opaque so rows scroll *under* it (see the sticky wrapper below), which means the drop-target tint can't just be...
 const DROP_TINT = 'bg-[linear-gradient(hsl(var(--primary)/0.05),hsl(var(--primary)/0.05))]'
 
 export function FlowCard({
@@ -81,8 +80,6 @@ export function FlowCard({
     setLocalFlow(flow)
   }, [flow])
 
-  // Card reorder (21a). The context this registers with is the *shell's*, not
-  // the one below for command rows — see `shellDndContext.tsx`.
   const {
     attributes,
     listeners,
@@ -93,7 +90,6 @@ export function FlowCard({
     isOver
   } = useSortable({ id: flow.id, data: { source: 'flow-card' } })
 
-  // 21b: a sortable is already a droppable, so the card accepts a dock command without registering a second target.
   const { activeSource } = useShellDrag()
   const isCommandDropTarget = isOver && activeSource === 'dock'
 
@@ -130,8 +126,6 @@ export function FlowCard({
     }
   }
 
-  // Per-row status: rows before the running command are done, the running index
-  // itself is running, later rows are queued. Only while THIS flow runs.
   const statusFor = (index: number): FlowRowStatus => {
     if (!isThisFlowRunning || runningCommandIndex === null) return 'idle'
     if (index < runningCommandIndex) return 'done'
@@ -150,17 +144,12 @@ export function FlowCard({
         position: 'relative'
       }}
       className={cn(
-        // No `overflow-hidden` here — it would make this card the sticky header's containing block, pinning the header to a box that never scrolls...
+        // overflow-hidden would trap the sticky header inside this card.
         'w-full rounded-xl border border-hairline bg-surface-panel transition-colors',
         isThisFlowRunning && 'border-l-2 border-l-success',
         isCommandDropTarget && 'border-primary bg-primary/5'
       )}
     >
-      {/* Header + column labels ride together in one sticky wrapper, so a long
-          flow keeps its name, Run/Stop and column headings in view while its
-          rows scroll past. One wrapper rather than two `sticky` elements: the
-          second would need the first's height as a `top` offset, and that
-          height varies with the running indicator. */}
       <div
         className={cn(
           'sticky top-0 z-10 rounded-t-xl bg-surface-panel',
@@ -168,7 +157,6 @@ export function FlowCard({
           isCommandDropTarget && DROP_TINT
         )}
       >
-        {/* header */}
         <div className="flex items-center justify-between gap-3 px-4 py-3">
           <div className="flex items-center gap-1.5">
             <span
@@ -180,9 +168,7 @@ export function FlowCard({
             >
               <LuGripVertical size={16} />
             </span>
-            {/* Collapse chevron + name are one control: the name is the biggest
-                target on the row, and a card whose body is hidden has to be
-                re-openable without hunting for a 28px glyph. */}
+
             <button
               type="button"
               onClick={() => onToggleCollapse(localFlow)}
@@ -241,13 +227,13 @@ export function FlowCard({
               />
               <span className="text-xs text-glyph-dim">ms</span>
             </div>
-            {/* Run + Add — one joined segmented control (no gap between segments) */}
+
             <div className="flex items-center">
               <Button
                 size="sm"
                 onClick={() => onRunFlow?.(localFlow)}
                 variant={isThisFlowRunning ? 'destructive' : 'default'}
-                // A running flow can always be stopped, target or not — the run started before the target was cleared, and trapping it would be worse than...
+                // A running flow must remain stoppable if the target is cleared.
                 disabled={!canSend && !isThisFlowRunning}
                 title={
                   canSend || isThisFlowRunning
@@ -278,7 +264,6 @@ export function FlowCard({
           </div>
         </div>
 
-        {/* column labels — shared C4 grid language + a leading status column */}
         {!collapsed && commandsWithIds.length > 0 && (
           <div
             className="grid items-center border-t border-hairline px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.06em] text-glyph-dim"
@@ -296,10 +281,6 @@ export function FlowCard({
         )}
       </div>
 
-      {/* Command list. No height cap and no `overflow` — every flow card used to
-          be its own scroll container, which meant a wheel gesture over a card
-          was captured by that card and never reached the page. The screen has
-          one scroller now, and a flow too long to sit in it collapses instead. */}
       {!collapsed && (
         <div id={bodyId} className="overflow-hidden rounded-b-xl">
           {commandsWithIds.length > 0 ? (

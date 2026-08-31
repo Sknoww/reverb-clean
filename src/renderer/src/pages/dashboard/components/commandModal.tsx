@@ -17,6 +17,8 @@ import {
   ModalFooter,
   ModalHeader
 } from './modalShell'
+import { RepairScreenPermissionModal, useScreenPermissionStatus } from './settingsScreenCapture'
+import { screenPermissionActions } from './screenPermissionCopy'
 
 const defaultCommand: AdbCommand = {
   id: uuid(),
@@ -52,7 +54,7 @@ export function CommandModal({
   error
 }: CommandModalProps) {
   const [editedCommand, setEditedCommand] = useState<AdbCommand>(command || { ...defaultCommand })
-  // The duplicate-keyword error is owned by Dashboard and only clears on save or close, so it would otherwise sit under a keyword the user...
+
   const [keywordEdited, setKeywordEdited] = useState(false)
   const [scanStage, setScanStage] = useState<'idle' | 'capturing' | 'selecting' | 'decoding'>(
     'idle'
@@ -60,6 +62,13 @@ export function CommandModal({
   const [scanResult, setScanResult] = useState<Awaited<
     ReturnType<Window['barcodeAPI']['scanScreens']>
   > | null>(null)
+  const permissionDenied = scanResult?.status === 'permission-denied'
+  const { status: screenPermission } = useScreenPermissionStatus(isOpen && permissionDenied)
+  const permissionActions = screenPermission
+    ? screenPermissionActions(screenPermission)
+    : { repair: false, openSettings: true, relaunch: false }
+  const [confirmRepair, setConfirmRepair] = useState(false)
+  const [permissionError, setPermissionError] = useState<string | null>(null)
   const scanToken = useRef(0)
   const valueInput = useRef<HTMLInputElement>(null)
 
@@ -70,6 +79,8 @@ export function CommandModal({
       setKeywordEdited(false)
       setScanStage('idle')
       setScanResult(null)
+      setConfirmRepair(false)
+      setPermissionError(null)
     } else {
       scanToken.current += 1
     }
@@ -259,7 +270,7 @@ export function CommandModal({
             </Field>
 
             <Field htmlFor="value" label="Value">
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2">
                 <Input
                   ref={valueInput}
                   id="value"
@@ -270,12 +281,12 @@ export function CommandModal({
                   required
                 />
                 {editedCommand.type === 'barcode' && (
-                  <div className="flex flex-shrink-0 gap-1.5">
+                  <div className="grid grid-cols-2 gap-1.5">
                     <button
                       type="button"
                       onClick={handleScan}
                       disabled={scanStage !== 'idle'}
-                      className="flex h-10 items-center gap-2 rounded-[9px] border border-border-control bg-surface-control px-3 text-xs text-zinc-300 transition-colors hover:bg-row-hover hover:text-foreground disabled:cursor-wait disabled:opacity-60"
+                      className="flex h-10 w-full items-center justify-center gap-2 rounded-[9px] border border-border-control bg-surface-control px-3 text-xs text-zinc-300 transition-colors hover:bg-row-hover hover:text-foreground disabled:cursor-wait disabled:opacity-60"
                       title="Scan all visible screens for Data Matrix and QR codes"
                     >
                       {scanStage !== 'idle' ? (
@@ -295,7 +306,7 @@ export function CommandModal({
                       type="button"
                       onClick={handleRegionSelect}
                       disabled={scanStage !== 'idle'}
-                      className="flex h-10 items-center gap-2 rounded-[9px] border border-border-control bg-surface-control px-3 text-xs text-zinc-300 transition-colors hover:bg-row-hover hover:text-foreground disabled:cursor-wait disabled:opacity-60"
+                      className="flex h-10 w-full items-center justify-center gap-2 rounded-[9px] border border-border-control bg-surface-control px-3 text-xs text-zinc-300 transition-colors hover:bg-row-hover hover:text-foreground disabled:cursor-wait disabled:opacity-60"
                       title="Select part of a screen to scan"
                     >
                       <LuCrosshair className="h-4 w-4" aria-hidden />
@@ -349,18 +360,52 @@ export function CommandModal({
               )}
 
               {editedCommand.type === 'barcode' && scanResult?.status === 'permission-denied' && (
-                <div className="flex items-start justify-between gap-3 rounded-[9px] border border-amber-300/20 bg-amber-300/5 p-2.5">
-                  <p role="alert" className="text-xs leading-snug text-amber-100">
-                    Screen Recording permission is required. Grant Reverb access, then relaunch the
-                    app.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => void window.barcodeAPI.openScreenRecordingSettings()}
-                    className="flex-shrink-0 text-xs font-medium text-amber-200 hover:text-amber-100"
-                  >
-                    Open Settings
-                  </button>
+                <div className="flex flex-col gap-2 rounded-[9px] border border-amber-300/20 bg-amber-300/5 p-2.5">
+                  <div className="flex flex-col gap-2">
+                    <p role="alert" className="text-xs leading-snug text-amber-100">
+                      {screenPermission?.status === 'needs-repair'
+                        ? 'This update has a new ad-hoc identity. Repair Reverb’s stale Screen Recording entry, then relaunch.'
+                        : screenPermission?.recovery === 'awaiting-approval'
+                          ? 'Enable Reverb in Screen & System Audio Recording. macOS requires you to make this choice.'
+                          : screenPermission?.status === 'restricted'
+                            ? 'Screen Recording is restricted by system policy.'
+                            : 'Screen Recording permission is required. Grant Reverb access, then relaunch the app.'}
+                    </p>
+                    <div className="flex flex-shrink-0 items-center justify-end gap-2">
+                      {permissionActions.repair && (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmRepair(true)}
+                          className="text-xs font-medium text-amber-200 hover:text-amber-100"
+                        >
+                          Repair permission and relaunch
+                        </button>
+                      )}
+                      {permissionActions.openSettings && (
+                        <button
+                          type="button"
+                          onClick={() => void window.screenPermissionAPI.openSettings()}
+                          className="text-xs font-medium text-amber-200 hover:text-amber-100"
+                        >
+                          Open Settings
+                        </button>
+                      )}
+                      {permissionActions.relaunch && (
+                        <button
+                          type="button"
+                          onClick={() => void window.screenPermissionAPI.relaunch()}
+                          className="text-xs font-medium text-amber-200 hover:text-amber-100"
+                        >
+                          Relaunch now
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {permissionError && (
+                    <p role="alert" className="text-xs leading-snug text-red-300">
+                      {permissionError}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -391,6 +436,11 @@ export function CommandModal({
           <ModalFooter onCancel={handleClose} submitLabel={isEditing ? 'Save changes' : 'Create'} />
         </form>
       </DialogContent>
+      <RepairScreenPermissionModal
+        open={confirmRepair}
+        onClose={() => setConfirmRepair(false)}
+        onError={setPermissionError}
+      />
     </Dialog>
   )
 }

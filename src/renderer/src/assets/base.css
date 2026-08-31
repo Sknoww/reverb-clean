@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Paths are relative to this file (src/renderer/src/assets/). */
 @font-face {
   font-family: 'Inter';
   src: url('./fonts/Inter-Regular.woff2') format('woff2');
@@ -27,7 +26,6 @@
   font-display: swap;
 }
 
-/* 2. Explicitly set all elements to use Inter */
 @layer base {
   html,
   body {
@@ -45,12 +43,10 @@
       sans-serif !important;
   }
 
-  /* This ensures all elements use Inter */
   * {
     font-family: inherit;
   }
 
-  /* JetBrains Mono ships programming ligatures on by default. */
   .font-mono {
     font-variant-ligatures: none;
   }
@@ -62,71 +58,63 @@
 
 @layer base {
   :root {
-    /* Updated color scheme using your specified colors */
-    /* Black: #222222 - converted to HSL: 0 0% 13.3% */
-    /* White: #FCF8F8 - converted to HSL: 0 20% 98% */
-    /* Violet: #4B4E6D - converted to HSL: 235 17.8% 36.3% */
+    --background: 240 10% 4%;
+    --foreground: 0 20% 98%;
 
-    --background: 240 10% 4%; /* #09090b */
-    --foreground: 0 20% 98%; /* #FCF8F8 */
-
-    --primary: 235 17.8% 36.3%; /* #4B4E6D */
-    --primary-foreground: 0 20% 98%; /* #FCF8F8 */
+    --primary: 235 17.8% 36.3%;
+    --primary-foreground: 0 20% 98%;
 
     --secondary: 235 17.8% 45%;
-    --secondary-foreground: 0 20% 98%; /* #FCF8F8 */
+    --secondary-foreground: 0 20% 98%;
 
-    --border: 240 6% 20%; /* subtle border */
-    --input: 240 6% 20%; /* subtle input border */
-    --ring: 235 17.8% 36.3%; /* #4B4E6D */
+    --border: 240 6% 20%;
+    --input: 240 6% 20%;
+    --ring: 235 17.8% 36.3%;
 
-    --card: 240 10% 4%; /* #09090b */
-    --card-foreground: 0 20% 98%; /* #FCF8F8 */
+    --card: 240 10% 4%;
+    --card-foreground: 0 20% 98%;
 
     --popover: 240 6% 10%;
-    --popover-foreground: 0 20% 98%; /* #FCF8F8 */
+    --popover-foreground: 0 20% 98%;
 
     --muted: 0 0% 20%;
-    --muted-foreground: 240 5% 65%; /* dimmer than foreground for hierarchy */
+    --muted-foreground: 240 5% 65%;
 
-    --accent: 235 17.8% 36.3%; /* #4B4E6D */
-    --accent-foreground: 0 20% 98%; /* #FCF8F8 */
+    --accent: 235 17.8% 36.3%;
+    --accent-foreground: 0 20% 98%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 20% 98%; /* #FCF8F8 */
+    --destructive-foreground: 0 20% 98%;
 
-    /* ── Redesign: Workspace Shell tokens (C0) ───────────────────────── New surface/accent values from the UI-redesign handoff. */
-    --surface-shell: 240 9.1% 4.3%; /* #0a0a0c window background */
-    --surface-chrome: 240 11.1% 3.5%; /* #08080a rail / dock / status-bar */
-    --surface-panel: 240 7.7% 5.1%; /* #0c0c0e list containers, cards */
-    --surface-control: 240 7.3% 8%; /* #131316 pill, command bar, dock rows, inputs */
-    --surface-editor: 240 12.5% 6.3%; /* #0e0e12 console editor, modal bg */
-    --hairline: 240 6.7% 11.8%; /* #1c1c20 dividers inside panels */
-    --border-control: 240 6.2% 15.9%; /* #26262b control borders */
-    --border-bar: 240 8.5% 18.4%; /* #2b2b33 command-bar / editor border */
-    --nav-active: 240 22.7% 14.7%; /* #1d1d2e selected rail item / active chip */
-    --row-hover: 240 11.1% 7.1%; /* #101014 table row hover */
-    --accent-indigo: 236 19.1% 56.9%; /* #7c7fa6 active rail glyph + indicator */
-    --accent-indigo-bright: 228 96.5% 88.8%; /* #c7d2fe active rail text */
-    --mono-keyword: 230 93.5% 81.8%; /* #a5b4fc keyword column, › prompt */
-    --success: 158 64.4% 51.6%; /* #34d399 run glyph, success (hover) */
-    --success-muted: 161 93.5% 30.4%; /* #059669 success idle */
-    --status-connected: 160 84.1% 39.4%; /* #10b981 device-connected dot */
-    --type-barcode: 198 93.2% 59.6%; /* #38bdf8 barcode dot / label */
-    --type-speech: 43 96.4% 56.3%; /* #fbbf24 speech dot / label */
-    --stale: 27 86% 59.2%; /* #f0883e out-of-date / needs-attention (Sync, S2) */
-    --glyph-dim: 240 4% 50%; /* #7a7a85 inactive icons, uppercase labels, table headers */
-    --glyph-dimmer: 240 4% 44%; /* #6c6c75 drag handles */
-    --text-dim: 240 4% 58%; /* #909098 mono id, timestamps, captions, nav labels, status bar */
+    --surface-shell: 240 9.1% 4.3%;
+    --surface-chrome: 240 11.1% 3.5%;
+    --surface-panel: 240 7.7% 5.1%;
+    --surface-control: 240 7.3% 8%;
+    --surface-editor: 240 12.5% 6.3%;
+    --hairline: 240 6.7% 11.8%;
+    --border-control: 240 6.2% 15.9%;
+    --border-bar: 240 8.5% 18.4%;
+    --nav-active: 240 22.7% 14.7%;
+    --row-hover: 240 11.1% 7.1%;
+    --accent-indigo: 236 19.1% 56.9%;
+    --accent-indigo-bright: 228 96.5% 88.8%;
+    --mono-keyword: 230 93.5% 81.8%;
+    --success: 158 64.4% 51.6%;
+    --success-muted: 161 93.5% 30.4%;
+    --status-connected: 160 84.1% 39.4%;
+    --type-barcode: 198 93.2% 59.6%;
+    --type-speech: 43 96.4% 56.3%;
+    --stale: 27 86% 59.2%;
+    --glyph-dim: 240 4% 50%;
+    --glyph-dimmer: 240 4% 44%;
+    --text-dim: 240 4% 58%;
 
     --radius: 0.5rem;
   }
 }
 
-/* Force dark theme even when system is set to light */
 @media (prefers-color-scheme: light) {
   :root {
-    /* Same values as :root — dark-only app */
     --background: 240 10% 4%;
     --foreground: 0 20% 98%;
 
@@ -155,7 +143,6 @@
     --input: 240 6% 20%;
     --ring: 235 17.8% 36.3%;
 
-    /* Redesign: Workspace Shell tokens (C0) — dark-only app, same values as :root */
     --surface-shell: 240 9.1% 4.3%;
     --surface-chrome: 240 11.1% 3.5%;
     --surface-panel: 240 7.7% 5.1%;
@@ -181,14 +168,12 @@
   }
 }
 
-/* Force dark theme colors on the root elements */
 html,
 body {
   color: hsl(var(--foreground));
   background-color: hsl(var(--background));
 }
 
-/* Input focus states */
 input:focus,
 textarea:focus,
 select:focus,
@@ -204,13 +189,11 @@ select:focus,
     box-shadow 0.2s ease !important;
 }
 
-/* Escape hatch (redesign): inputs whose focus is shown by a wrapping container (e.g. */
 .bare-input:focus {
   border-color: transparent !important;
   box-shadow: none !important;
 }
 
-/* 10px, not the 6px this started at. */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

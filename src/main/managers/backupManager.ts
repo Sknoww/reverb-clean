@@ -7,12 +7,9 @@ import { loadConfig, replaceConfig } from './configManager'
 import { selectBundleFile, selectBundleSavePath } from './dialogManager'
 import { saveProject } from './projectManager'
 
-// Export / import bundle (area 17) The fresh-machine restore story, and — once area 19 lands — the thing that carries the target values...
-
 const BUNDLE_FORMAT = 'reverb-bundle'
 const BUNDLE_VERSION = 1
 
-/** `reverb-backup-2026-07-27.json` */
 const defaultBundleName = (): string => {
   const now = new Date()
   const stamp = [
@@ -30,7 +27,6 @@ const isProject = (value: any): value is Project =>
   typeof value.id === 'string' &&
   typeof value.name === 'string'
 
-/** Every `*.project.json` under `saveLocation`. */
 const readAllProjectFiles = (projectsDir: string): BundleProject[] => {
   if (!projectsDir || !fs.existsSync(projectsDir)) {
     logger.warn('No projects directory to export:', projectsDir)
@@ -57,7 +53,6 @@ const readAllProjectFiles = (projectsDir: string): BundleProject[] => {
   return bundled
 }
 
-/** Shape check only — the *contents* are re-validated downstream by `validateAndFillConfig` (config) and `saveProject` (projects), so a... */
 const parseBundle = (raw: string): ReverbBundle => {
   const parsed = JSON.parse(raw)
 
@@ -78,7 +73,6 @@ const parseBundle = (raw: string): ReverbBundle => {
   }
 }
 
-/** Write config + every project under `saveLocation` to a file the user picks. */
 export const exportBundle = async (): Promise<BundleResult> => {
   try {
     const filePath = await selectBundleSavePath(defaultBundleName())
@@ -106,7 +100,6 @@ export const exportBundle = async (): Promise<BundleResult> => {
   }
 }
 
-/** Replace config and write every project the bundle carries. */
 export const importBundle = async (): Promise<BundleResult> => {
   try {
     const filePath = await selectBundleFile()
@@ -114,7 +107,7 @@ export const importBundle = async (): Promise<BundleResult> => {
 
     const bundle = parseBundle(fs.readFileSync(filePath, 'utf-8'))
 
-    // Config first: it carries `saveLocation`, and writing it re-points projectManager's directory (via `setProjectsDirectory`) before any...
+    // The config sets the project directory, so it must be restored first.
     const applied = await replaceConfig(bundle.config as Config)
     if (!applied) throw new Error('Could not write the imported config')
 

@@ -1,6 +1,5 @@
 import { createContext, Dispatch, ReactNode, SetStateAction, useContext, useState } from 'react'
 
-// A single JS-console execution result.
 export interface ConsoleResult {
   id: string
   timestamp: string

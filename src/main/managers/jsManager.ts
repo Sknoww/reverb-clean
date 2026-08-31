@@ -11,17 +11,15 @@ export async function executeJsScript(
   deviceId: string
 ): Promise<JsExecutionResult> {
   return new Promise<JsExecutionResult>((resolve) => {
-    // Wrap single-line expressions in JSON.stringify so the script provider returns a JSON string.
     const isSingleExpression = !script.includes('\n')
-    // Use compact JSON (no indentation) so the result fits on a single line.
+
     const wrappedScript = isSingleExpression ? `JSON.stringify((${script}))` : script
     const encoded = Buffer.from(wrappedScript, 'utf8').toString('base64')
-    // Both the binary and the ceiling are config now (18b).
+
     const config = loadConfig()
     const adbPath = getAdbPath(config.adbPath)
     const timeoutMs = config.behavior.jsTimeoutMs
 
-    // The provider URI is config now (area 19) — it was a literal here.
     const providerUri = config.target.scriptProviderUri
     if (!providerUri) {
       resolve({

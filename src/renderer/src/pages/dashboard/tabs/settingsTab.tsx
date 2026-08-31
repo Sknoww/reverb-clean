@@ -12,6 +12,7 @@ import { SettingsCommonCommands } from '../components/settingsCommonCommands'
 import { SettingsData } from '../components/settingsData'
 import { ProvisioningSettings } from '../components/settingsProvisioning'
 import { SettingsSection } from '../components/settingsSection'
+import { SettingsScreenCapture } from '../components/settingsScreenCapture'
 import { TargetSettings } from '../components/settingsTarget'
 import { SETTINGS_TARGET_SECTION } from '../components/targetNotice'
 import { DEPLOYMENT_FIELD, PathField, PathSpec } from '../components/syncPaths'
@@ -20,9 +21,6 @@ import { useSyncContext } from '../contexts/syncContext'
 import { Fragment } from 'react'
 import { useLocation } from 'react-router-dom'
 
-// The Settings screen (area 18a) — the last screen the redesign never touched, rebuilt inside the shell as one scrolling column of titled...
-
-/** Which config field a path row writes, and how it gets there. */
 type PathKey = 'saveLocation' | 'connectorRoot' | 'sourceFile' | 'targetFile' | 'adbPath'
 
 const PATH_SPECS = (connectorRoot: string): PathSpec<PathKey>[] => [
@@ -53,14 +51,12 @@ const PATH_SPECS = (connectorRoot: string): PathSpec<PathKey>[] => [
   {
     key: 'adbPath',
     label: 'ADB binary',
-    // Unset reads `Not set` like the others, which would be wrong here — unset
-    // is a working state, not a missing one — so the hint carries what happens.
+
     hint: 'override the bundled platform-tools; unset uses the bundled adb',
     pick: () => window.dialogAPI.selectExecutable('Select adb')
   }
 ]
 
-/** Placeholders for the first frame only. */
 const FALLBACK_BEHAVIOR: BehaviorConfig = {
   flowDelayMs: 5000,
   adbTimeoutMs: 15_000,
@@ -70,10 +66,8 @@ const FALLBACK_BEHAVIOR: BehaviorConfig = {
 
 const FALLBACK_LOGGING: LoggingConfig = { level: 'info', maxAgeDays: 7, maxFiles: 10 }
 
-/** Area 28's block is empty by default too — same rule, same reason. */
 const FALLBACK_PROVISION: ProvisionConfig = { sourceRoot: '', steps: [] }
 
-/** Area 19's block is empty by default, so its placeholder *is* the default. */
 const FALLBACK_TARGET: TargetConfig = {
   packageId: '',
   launcherActivity: '',
@@ -81,8 +75,6 @@ const FALLBACK_TARGET: TargetConfig = {
   speechIntent: '',
   barcodeIntent: ''
 }
-
-// Unset is not an error here — Sync's own first-run card is where a missing path is a blocker (frame 6d).
 
 export function SettingsTab({
   config,
@@ -93,9 +85,9 @@ export function SettingsTab({
   onReorderCommonCommands
 }: {
   config: Config
-  /** Re-read config in the shell — this screen never holds its own copy. */
+
   onConfigChanged: () => Promise<void> | void
-  // The library's mutations are the shell's (18b2) — the same four the dock calls.
+
   onAddCommonCommand: () => void
   onEditCommonCommand: (command: AdbCommand) => void
   onDeleteCommonCommand: (command: AdbCommand) => void
@@ -103,13 +95,10 @@ export function SettingsTab({
 }) {
   const sync = useSyncContext()
 
-  // A screen can arrive here pointing at one section (19a's target notice).
   const location = useLocation()
   const requested = (location.state as { section?: string } | null)?.section
   const revealKeyFor = (section: string) => (requested === section ? location.key : undefined)
 
-  // Restores where the column was left. A section link still wins: `SettingsSection`
-  // reveals from an effect and a frame later, both after the restore below.
   const columnRef = useScrollMemory('settings')
 
   const connectorRoot = config.connectorRoot ?? ''
@@ -124,8 +113,6 @@ export function SettingsTab({
 
   const changePath = async (key: PathKey, value: string) => {
     if (key === 'saveLocation') {
-      // `runUpdate` re-points projectManager's directory as part of the write,
-      // so there's nothing to notify afterwards.
       await window.configAPI.saveConfig({ saveLocation: value })
     } else if (key === 'connectorRoot') {
       await window.configAPI.updateConnectorRoot(value)
@@ -137,11 +124,9 @@ export function SettingsTab({
 
     await onConfigChanged()
 
-    // Sync's rule 3: never trust a previous read once a path moves.
     if (key !== 'saveLocation' && key !== 'adbPath') await sync.rescan()
   }
 
-  // 19c.
   const changeDeploymentPath = async (value: string) => {
     await window.configAPI.updateSyncConfig({ deploymentPath: value })
     await onConfigChanged()
@@ -165,10 +150,8 @@ export function SettingsTab({
                 spec={spec}
                 value={values[spec.key]}
                 onChange={(key, value) => void changePath(key, value)}
-                // Only the ADB override has a meaningful empty state to return to.
                 clearLabel={spec.key === 'adbPath' ? 'Use bundled' : undefined}
               />
-              {/* Ordered by what it belongs with, not by control type: the key is the third thing Sync needs from the connector, so it lands under the... */}
               {spec.key === 'targetFile' && (
                 <ValueField
                   {...DEPLOYMENT_FIELD}
@@ -198,6 +181,13 @@ export function SettingsTab({
         </SettingsSection>
 
         <SettingsSection
+          title="Permissions"
+          description="Operating-system access used by Reverb. System security choices always remain yours."
+        >
+          <SettingsScreenCapture />
+        </SettingsSection>
+
+        <SettingsSection
           title="Common commands"
           description="The global command library — the same rows the dock shows on every other screen."
         >
@@ -209,8 +199,6 @@ export function SettingsTab({
             onReorder={onReorderCommonCommands}
           />
         </SettingsSection>
-
-        {/* 18b2 shipped this section empty and area 19 filled it — which is why the frame landed early: 19 became a config change plus rows rather... */}
         <SettingsSection
           title="Target"
           description="Which Android client Reverb drives. Every command, the Reset client action, and the JS Console compose against these — until they're set, those capabilities are off."
@@ -218,8 +206,6 @@ export function SettingsTab({
         >
           <TargetSettings target={config.target ?? FALLBACK_TARGET} onChanged={onConfigChanged} />
         </SettingsSection>
-
-        {/* After Target and before Data (28b1). */}
         <SettingsSection
           title="Provisioning"
           description="Steps that run after a storage clear and before the client comes back up — pushing artifacts and granting the permissions its first launch would otherwise prompt for. Also runnable on its own."

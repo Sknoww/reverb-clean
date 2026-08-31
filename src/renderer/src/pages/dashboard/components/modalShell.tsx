@@ -4,30 +4,22 @@ import { Label } from '@/components/ui/label'
 import { ReactNode } from 'react'
 import { LuX } from 'react-icons/lu'
 
-// Shared chrome for the redesign's form modals (C7 — frames 5a / 5b).
-
-/** `overflow-hidden` overrides the primitive's whole-card scroll: on this chrome the header and footer stay pinned and `ModalBody` is the... */
 export const MODAL_CONTENT =
   'flex w-[468px] max-w-[468px] flex-col gap-0 overflow-hidden border-border-control bg-surface-editor p-0 shadow-[0_30px_70px_rgba(0,0,0,0.6)] sm:rounded-[14px]'
 
-/** For the modals that wrap their chrome in a `<form>`: without this the form is a single block child of the card and the body has nothing... */
 export const MODAL_FORM = 'flex min-h-0 flex-col'
 
-/** 40px control: the modal's default single-line input. */
 export const FIELD_INPUT =
   'h-10 rounded-[9px] border-border-control bg-surface-control px-3 text-sm text-foreground shadow-none placeholder:text-text-dim'
 
-/** Same control for machine values (keyword / value / delay) — mono, 13px. */
 export const FIELD_INPUT_MONO = `${FIELD_INPUT} font-mono text-[13px] md:text-[13px]`
 
 export const FIELD_TEXTAREA =
   'resize-none rounded-[9px] border-border-control bg-surface-control px-3 py-2.5 text-[13px] text-foreground shadow-none placeholder:text-text-dim md:text-[13px]'
 
-/** Applied to the offending control alongside the inline message. */
 export const FIELD_ERROR_BORDER = 'border-red-400/50'
 
 interface ModalHeaderProps {
-  /** Marker glyph left of the title (type dot on 5a, `⇄` on 5b). */
   marker: ReactNode
   title: string
   onClose: () => void
@@ -54,7 +46,6 @@ export function ModalHeader({ marker, title, onClose }: ModalHeaderProps) {
   )
 }
 
-/** The scroll region. */
 export function ModalBody({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-5 py-[18px]">{children}</div>
@@ -88,13 +79,12 @@ export function ModalFooter({ onCancel, submitLabel }: ModalFooterProps) {
 }
 
 interface FieldProps {
-  /** Matches the control's `id`; also seeds the error element's id. */
   htmlFor?: string
   label: string
   optional?: boolean
-  /** Help text under the control (28b1). */
+
   hint?: string
-  /** Inline message under the control — replaces the old footer banner. */
+
   error?: string | null
   children: ReactNode
 }

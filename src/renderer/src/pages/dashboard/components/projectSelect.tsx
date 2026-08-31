@@ -19,14 +19,12 @@ interface ProjectMenuProps {
 }
 
 export function ProjectMenu({ projects, currentProject, currentFile }: ProjectMenuProps) {
-  // State
   const [modalOpen, setModalOpen] = useState(false)
   const [projectAlreadyExists, setProjectAlreadyExists] = useState(false)
   const [duplicateModalOpen, setDuplicateModalOpen] = useState(false)
   const [projectToDuplicate, setProjectToDuplicate] = useState<Project | null>(null)
   const [duplicateAlreadyExists, setDuplicateAlreadyExists] = useState(false)
 
-  // Handlers
   const handleSelectProject = async (projectId: string) => {
     if (projectId) {
       await window.configAPI.updateRecentProjectId(projectId)
@@ -111,7 +109,6 @@ export function ProjectMenu({ projects, currentProject, currentFile }: ProjectMe
     return existingProject !== null
   }
 
-  // Helper render functions
   const renderProjectName = () => (
     <>
       <span className="min-w-0 truncate">{currentProject?.name ?? 'No project selected'}</span>
@@ -151,8 +148,6 @@ export function ProjectMenu({ projects, currentProject, currentFile }: ProjectMe
       <div className="flex min-w-0 items-center">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            {/* Breadcrumb trigger (C2): quiet text, no chrome — the title beside
-                it carries the weight. */}
             <button
               type="button"
               className="flex min-w-0 max-w-[280px] items-center gap-1.5 rounded-md px-1 py-0.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -162,7 +157,6 @@ export function ProjectMenu({ projects, currentProject, currentFile }: ProjectMe
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="start">
-            {/* Create New Project Option */}
             <DropdownMenuGroup>
               <DropdownMenuItem className="cursor-pointer" onClick={handleAddProject}>
                 New Project
@@ -171,7 +165,6 @@ export function ProjectMenu({ projects, currentProject, currentFile }: ProjectMe
 
             <DropdownMenuSeparator />
 
-            {/* Duplicate Current Project */}
             <DropdownMenuGroup>
               <DropdownMenuItem
                 className="cursor-pointer"
@@ -184,13 +177,11 @@ export function ProjectMenu({ projects, currentProject, currentFile }: ProjectMe
 
             <DropdownMenuSeparator />
 
-            {/* Recent Projects */}
             <Label htmlFor="project-select" className="text-xs px-2">
               Recent...
             </Label>
             {renderRecentProjects()}
 
-            {/* Browse Files */}
             <DropdownMenuGroup>
               <DropdownMenuItem className="cursor-pointer" onClick={handleBrowseFiles}>
                 Browse...
@@ -200,7 +191,6 @@ export function ProjectMenu({ projects, currentProject, currentFile }: ProjectMe
         </DropdownMenu>
       </div>
 
-      {/* Project Creation/Edit Modal */}
       <ProjectModal
         isOpen={modalOpen}
         onClose={handleCloseModal}
@@ -208,7 +198,6 @@ export function ProjectMenu({ projects, currentProject, currentFile }: ProjectMe
         error={projectAlreadyExists}
       />
 
-      {/* Duplicate Project Modal */}
       <ProjectModal
         isOpen={duplicateModalOpen}
         onClose={handleCloseDuplicate}

@@ -15,9 +15,6 @@ import { useState } from 'react'
 import { useSyncContext } from '../contexts/syncContext'
 import { SyncProfileDeleteModal, SyncProfileFormModal } from './syncProfileModal'
 
-// The profile switcher (S3, frames 6b + 6f).
-
-/** The dirty marker — a state, not an error; the same `stale` token as bumps. */
 function ModifiedBadge({ compact }: { compact?: boolean }) {
   return (
     <span
@@ -49,8 +46,6 @@ function ProfileRow({
   onDelete: () => void
 }) {
   return (
-    // The highlight sits on the row, not the item, so it runs under the `⋯`
-    // peer as well — half a highlighted row reads as a rendering bug.
     <div className={cn('flex items-center rounded-sm', active && 'bg-nav-active')}>
       <DropdownMenuItem
         onSelect={onSelect}
@@ -69,7 +64,6 @@ function ProfileRow({
           {profile.zones.length}
         </span>
         {active && dirty && <ModifiedBadge compact />}
-        {/* A count, not an error: a zone can go missing on any branch switch. */}
         {missing > 0 && (
           <span
             className="flex-shrink-0 text-[11px] text-glyph-dim"
@@ -211,8 +205,6 @@ export function SyncProfileMenu() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Frame 6b's quiet peers — the same two actions the menu leads with,
-            one click closer while the selection is dirty. */}
         {activeProfile && profileDirty && (
           <div className="flex flex-shrink-0 items-center gap-2">
             <button

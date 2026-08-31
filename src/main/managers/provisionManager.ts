@@ -11,8 +11,6 @@ import {
   ProvisionStepResult
 } from '../types'
 
-/** The routine that runs between `pm clear` and the relaunch (area 28), and the same steps on their own from the top bar's split control. */
-
 interface AdbRun {
   code: number | null
   stdout: string
@@ -21,7 +19,6 @@ interface AdbRun {
   spawnError?: string
 }
 
-/** adb narrates its own daemon lifecycle, and it does so on stderr — a cold `adb` writes `* daemon not running; starting now at tcp:5037`... */
 const stripAdbChatter = (text: string): string =>
   text
     .replace(/\r\n/g, '\n')
@@ -30,7 +27,6 @@ const stripAdbChatter = (text: string): string =>
     .join('\n')
     .trim()
 
-/** Area 25's finding generalised: `pm clear` prints `Failed` and exits 0, and the `pm`/`am` family is not alone in it. */
 const FAILURE_LINE =
   /^\s*(?:adb: (?:error|failed)|Failure|Failed|Error|Exception|java\.lang\.\w+(?:Exception|Error))\b/im
 
@@ -53,8 +49,8 @@ const runAdb = (adbPath: string, args: string[], timeoutMs: number): Promise<Adb
 
     const timer = setTimeout(() => {
       timedOut = true
-      // Same kill as `jsManager`: a bare `child.kill()` on Windows leaves adb's
-      // own children behind.
+
+      // On Windows, killing only adb leaves its child processes running.
       if (process.platform === 'win32' && child.pid) {
         spawn('taskkill', ['/pid', String(child.pid), '/f', '/t'])
       } else {
@@ -107,7 +103,7 @@ const classify = (run: AdbRun, timeoutMs: number): StepOutcome => {
     return { success: false, output, error: output || `adb exited with code ${run.code}` }
   }
 
-  // Exit 0 with a failure line: the `pm clear` shape.
+  // Some adb commands report failure in their output while exiting with code 0.
   if (FAILURE_LINE.test(output)) {
     return { success: false, output, error: output }
   }
@@ -115,7 +111,6 @@ const classify = (run: AdbRun, timeoutMs: number): StepOutcome => {
   return { success: true, output }
 }
 
-/** What progress and the failure report call a step. */
 export const describeStep = (step: ProvisionStep): string => {
   if (step.label) return step.label
 
@@ -133,7 +128,7 @@ export const describeStep = (step: ProvisionStep): string => {
 
 interface RunContext {
   adbPath: string
-  /** `['-s', id]`, or empty when no device is selected — `adbManager`'s posture. */
+
   deviceArgs: string[]
   packageId: string
   sourceRoot: string
@@ -149,7 +144,6 @@ const runStep = async (step: ProvisionStep, context: RunContext): Promise<StepOu
       return { success: true }
 
     case 'shell':
-      // The whole command line is one argv element: adb passes it to the device shell verbatim, so nothing here needs host-side quoting.
       return classify(
         await runAdb(adbPath, [...deviceArgs, 'shell', step.command], timeoutMs),
         timeoutMs
@@ -171,7 +165,6 @@ const runStep = async (step: ProvisionStep, context: RunContext): Promise<StepOu
     }
 
     case 'grant': {
-      // Every permission is attempted even after one fails, then the step fails as a whole: a step that reports "3 of 4 granted" is worth more...
       const permissions: ProvisionPermissionResult[] = []
 
       for (const permission of step.permissions) {
@@ -214,7 +207,6 @@ const refusal = (error: string): ProvisionResult => {
   return { success: false, steps: [], error }
 }
 
-/** Run the configured routine. */
 export const runProvision = async (
   options: { onProgress?: (progress: ProvisionProgress) => void } = {}
 ): Promise<ProvisionResult> => {
@@ -266,8 +258,6 @@ export const runProvision = async (
     }
 
     if (!result.success && step.type === 'shell' && step.continueOnError) {
-      // The `mkdir` case: a step whose failure is expected often enough that the
-      // hand-run script ignored it too.
       result.continued = true
       results.push(result)
       logger.warn(`Provision step ${index + 1} failed, continuing: ${result.error}`)
@@ -277,7 +267,6 @@ export const runProvision = async (
     results.push(result)
 
     if (!result.success) {
-      // Stopping is the policy, not a fallback (§1.12 one layer out): a client that is still stopped can be fixed and re-run, a half-provisioned...
       logger.error(`Provision step ${index + 1} failed: ${result.error}`)
       return {
         success: false,

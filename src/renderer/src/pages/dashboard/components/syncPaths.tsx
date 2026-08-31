@@ -4,8 +4,6 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 import { ReactNode, useState } from 'react'
 import { ValueField } from './valueField'
 
-// What Sync runs on (S2, frames 6a + 6d): three paths, plus the deployment key 19c added.
-
 export interface SyncPaths {
   connectorRoot: string
   sourceFile: string
@@ -15,12 +13,11 @@ export interface SyncPaths {
 
 export type SyncPathKey = keyof SyncPaths
 
-/** `key` is `SyncPathKey` here and a config field name in Settings (§18a), so the spec is generic over it — the field component only ever... */
 export interface PathSpec<K extends string = SyncPathKey> {
   key: K
   label: string
   hint: string
-  /** Shown under the control when it's unset — an error state, not a placeholder. */
+
   required?: string
   pick: () => Promise<string | null>
 }
@@ -44,21 +41,18 @@ const PATH_SPECS = (defaultPath: string): PathSpec[] => [
     key: 'targetFile',
     label: 'Local YAML',
     hint: 'the file Sync edits',
-    // Copy pinned by frame 6d, and true of the manager: `applySync` reads the
-    // target before writing and errors when it isn't there.
+
     required: 'Required. The file must already exist — Sync edits it, it doesn’t create it.',
     pick: () => window.dialogAPI.selectYamlFile('Select your local YAML', defaultPath)
   }
 ]
 
-/** The deployment key's copy, exported so Settings' Paths section (§18a) states it identically — same reason `PathField` itself is shared. */
 export const DEPLOYMENT_FIELD = {
   label: 'Deployment key',
   hint: 'dotted path to the list inside both YAMLs',
   placeholder: 'parent.child.list'
 } as const
 
-/** Middle-truncation is the browser's job; we only drop the uninformative head. */
 function tail(value: string, segments = 3): string {
   const parts = value.replace(/\\/g, '/').split('/').filter(Boolean)
   if (parts.length <= segments) return value
@@ -69,11 +63,10 @@ interface PathFieldProps<K extends string> {
   spec: PathSpec<K>
   value: string
   onChange: (key: K, value: string) => void
-  /** Label for a reset peer that clears the path back to empty (18b's ADB override, where empty means "use the bundled binary"). */
+
   clearLabel?: string
 }
 
-/** The app's one path control: labels-above, a read-only 40px well showing the tail of the path, and a `Browse…` outline peer. */
 export function PathField<K extends string>({
   spec,
   value,
@@ -81,7 +74,7 @@ export function PathField<K extends string>({
   clearLabel
 }: PathFieldProps<K>) {
   const missing = !value
-  // Unset is only an *error* where the screen can't proceed without it.
+
   const invalid = missing && Boolean(spec.required)
 
   const browse = async () => {
@@ -131,7 +124,6 @@ export function PathField<K extends string>({
   )
 }
 
-/** Frame 6d — the only thing to do when nothing has been pointed at yet. */
 export function SyncSetupCard({
   paths,
   onChange,
@@ -197,7 +189,6 @@ function BandSegment({ label, value, grow }: { label: string; value: string; gro
   )
 }
 
-/** Frame 6a — the same three fields, folded into one row above the list. */
 export function SyncPathsBand({
   paths,
   onChange
@@ -262,7 +253,7 @@ export function SyncPathsBand({
       {divider}
       <BandSegment label="local" value={paths.targetFile} grow="flex-1" />
       {divider}
-      {/* `tail` only drops path heads, so a dotted key passes through whole. */}
+
       <BandSegment label="key" value={paths.deploymentPath} grow="flex-[0.8]" />
       <button
         type="button"
