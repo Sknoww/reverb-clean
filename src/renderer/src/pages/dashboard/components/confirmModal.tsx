@@ -3,8 +3,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter } from '@/compon
 import { ReactNode, useRef } from 'react'
 import { MODAL_CONTENT, ModalBody, ModalHeader } from './modalShell'
 
-// A confirmation on C7's shared chrome (§1.8) — the generic form of what the apply preview and the profile delete each hand-roll.
-
 export function ConfirmModal({
   isOpen,
   onClose,
@@ -21,7 +19,7 @@ export function ConfirmModal({
   marker: ReactNode
   title: string
   confirmLabel: string
-  /** Screen-reader summary — the visible body is `children`. */
+
   description: string
   children: ReactNode
 }) {

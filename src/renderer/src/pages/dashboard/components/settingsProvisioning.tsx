@@ -25,17 +25,13 @@ import { describeStep, ProvisionTypeIcon, stepFlags } from './provisionStepMeta'
 import { PathField, PathSpec } from './syncPaths'
 import { SETTINGS_BUTTON, SettingsDivider, SettingsRow } from './settingsSection'
 
-// Settings → Provisioning (area 28b1) — the UI for the routine 28a built and left reachable only by hand-editing `config.json`.
-
-// drag · type · detail · actions. Fixed columns total 172px; at the 720px
-// settings column that leaves ~500px for the step itself.
 const GRID = '26px 78px 1fr 68px'
 
 const SOURCE_ROOT_SPEC: PathSpec<'sourceRoot'> = {
   key: 'sourceRoot',
   label: 'Source root',
   hint: 'what a relative push source resolves against',
-  // No `clearLabel` peer, unlike the ADB override (18b1): there, empty is a *working* state that falls back to the bundled binary.
+
   pick: () => window.dialogAPI.selectFolder('Select the provisioning source root')
 }
 
@@ -69,8 +65,6 @@ function StepRow({
     <div
       ref={setNodeRef}
       style={style}
-      // Data's rounded hover band, not C4's per-row rule — this list sits inside
-      // a section card that already frames it (§1.11).
       className="grid items-center rounded-lg px-2.5 py-2 text-[13px] transition-colors hover:bg-row-hover"
     >
       <span
@@ -86,8 +80,6 @@ function StepRow({
         <ProvisionTypeIcon type={step.type} className="text-glyph-dim" />
         {step.type}
       </span>
-
-      {/* One flexible cell rather than separate label and detail columns. */}
       <span className="flex min-w-0 items-center gap-2 pr-3">
         {step.label ? (
           <>
@@ -142,10 +134,9 @@ export function ProvisioningSettings({
   onChanged
 }: {
   provision: ProvisionConfig
-  /** Re-read config in the shell — this screen never holds its own copy (18a). */
+
   onChanged: () => Promise<void> | void
 }) {
-  // Local mirror so a drag settles at 60fps rather than waiting on the config round-trip; re-seeded whenever the shell's copy changes...
   const [steps, setSteps] = useState<ProvisionStep[]>(provision.steps)
   const [editing, setEditing] = useState<{ step: ProvisionStep | null } | null>(null)
   const [pendingDelete, setPendingDelete] = useState<ProvisionStep | null>(null)
@@ -159,7 +150,6 @@ export function ProvisioningSettings({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
-  /** Every mutation is "here is the list now". */
   const commit = async (next: ProvisionStep[]) => {
     setSteps(next)
     await window.configAPI.updateProvisionConfig({ steps: next })
@@ -219,16 +209,12 @@ export function ProvisioningSettings({
       <SettingsDivider />
 
       {steps.length === 0 ? (
-        // Not a call to action: no routine is the shipped default, and with one
-        // configured the clear behaves exactly as it did before area 28.
         <p className="text-xs leading-relaxed text-muted-foreground">
           No steps — Clear client storage wipes and relaunches, exactly as it did before. Add one to
           put the device back into a working state on the way through.
         </p>
       ) : (
         <div className="flex flex-col">
-          {/* header — C4's mono uppercase caption row, minus the columns this
-              list doesn't carry */}
           <div
             className="grid items-center border-b border-hairline px-2.5 pb-2 font-mono text-[11px] uppercase tracking-[0.06em] text-glyph-dim"
             style={{ gridTemplateColumns: GRID }}

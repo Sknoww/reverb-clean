@@ -32,7 +32,6 @@ jobs:
         shell: bash
         run: |
           mkdir -p artifacts
-          # Remove the tag's v prefix for the archive name.
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "Version: $VERSION"
 

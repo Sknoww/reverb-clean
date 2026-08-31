@@ -21,9 +21,6 @@ import { useEffect, useState } from 'react'
 import { LuGripVertical, LuPencil, LuTrash2 } from 'react-icons/lu'
 import { SETTINGS_BUTTON, SettingsDivider, SettingsRow } from './settingsSection'
 
-// Settings' Common commands section (area 18b2) — the global command library, visible and editable in one place.
-
-// drag · type · name · keyword · value · actions.
 const GRID = '26px 84px 1fr 128px 1.3fr 68px'
 
 const TYPE_STYLES: Record<string, { dot: string; label: string }> = {
@@ -31,7 +28,6 @@ const TYPE_STYLES: Record<string, { dot: string; label: string }> = {
   speech: { dot: 'bg-type-speech', label: 'text-type-speech' }
 }
 
-/** Stable id for dnd + React keys. */
 function withIds(commands: AdbCommand[] | undefined): AdbCommand[] {
   return (commands ?? []).map((command, index) =>
     command.id ? command : { ...command, id: `common-${command.keyword}-${index}` }
@@ -66,10 +62,7 @@ function CommonCommandRow({
     <div
       ref={setNodeRef}
       style={style}
-      // The description has no column of its own, so it carries here — the row
-      // is the only place it can be read without opening the modal.
       title={command.description || undefined}
-      // Rounded hover band, no per-row rule — Data's snapshot list (§1.11), not C4's full-bleed bordered rows.
       className="grid items-center rounded-lg px-2.5 py-2 text-[13px] transition-colors hover:bg-row-hover"
     >
       <span
@@ -135,7 +128,6 @@ export function SettingsCommonCommands({
   onDelete: (command: AdbCommand) => void
   onReorder: (commands: AdbCommand[]) => void
 }) {
-  // Local mirror so a drag settles at 60fps rather than waiting on the config round-trip; re-seeded whenever the shell's copy changes...
   const [items, setItems] = useState<AdbCommand[]>(() => withIds(commands))
 
   useEffect(() => {
@@ -180,8 +172,6 @@ export function SettingsCommonCommands({
         </p>
       ) : (
         <div className="flex flex-col">
-          {/* header — C4's mono uppercase caption row, minus the two columns
-              this list doesn't carry */}
           <div
             className="grid items-center border-b border-hairline px-2.5 pb-2 font-mono text-[11px] uppercase tracking-[0.06em] text-glyph-dim"
             style={{ gridTemplateColumns: GRID }}

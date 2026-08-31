@@ -13,7 +13,7 @@ interface CommandTabProps {
   handleShowDeleteModal: (command: AdbCommand) => void
   handleSendCommand: (command: AdbCommand) => void
   handleReorderCommands: (commands: AdbCommand[]) => void
-  /** An intent action is configured (area 19). Editing the library never needs one. */
+
   canSend: boolean
 }
 
@@ -26,18 +26,15 @@ export function CommandTab({
   handleReorderCommands,
   canSend
 }: CommandTabProps) {
-  // The bar's active type drives Enter-runs-as; the filter narrows the list.
   const [barType, setBarType] = useState<CommandBarType>('barcode')
   const [activeTypeFilter, setActiveTypeFilter] = useSessionState<CommandTypeFilter>(
     'commands.typeFilter',
     'all'
   )
   const inputRef = useRef<HTMLInputElement>(null)
-  // Above the no-project early return: hooks run unconditionally, and the ref
-  // simply goes unattached on the screens that never render a list.
+
   const listRef = useScrollMemory('commands')
 
-  // ⌘K / Ctrl-K focuses the command bar from anywhere on this screen.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -79,8 +76,6 @@ export function CommandTab({
 
   return (
     <div className="flex h-full flex-col">
-      {/* Above the bar rather than replacing the screen (19a): the list is still
-          worth reading and editing with no target — only running is off. */}
       {!canSend && (
         <div className="flex-shrink-0 pb-3 pt-1">
           <TargetNotice message={TARGET_MESSAGES.commands} />
@@ -99,8 +94,6 @@ export function CommandTab({
           canSend={canSend}
         />
       </div>
-
-      {/* filter chips */}
       <div className="flex flex-shrink-0 items-center gap-2 pb-3">
         <button
           type="button"

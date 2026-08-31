@@ -13,7 +13,6 @@ export interface AdbCommandResult {
   error?: string
 }
 
-/** A clear carries its provisioning routine's outcome (area 28) so the caller can report *which step* stopped it rather than a single line. */
 export interface ClearStorageResult extends AdbCommandResult {
   provision?: ProvisionResult
 }
@@ -26,21 +25,16 @@ export interface AdbDevice {
 
 const exec = promisify(execCallback)
 
-/** Every adb invocation runs under the configured ceiling (18b). */
-
-/** Timed-out rejections carry a signal, not a message worth showing. */
 const describeExecError = (error: any): string =>
   error?.killed
     ? 'adb did not respond in time — check the device connection, or raise the ADB timeout in Settings.'
     : error?.message || 'Unknown error executing ADB command'
 
-/** The client every command targets is `config.target` now (area 19) — it used to be a hard-coded package constant here plus a hand-synced... */
 const NO_TARGET = (what: string): AdbCommandResult => ({
   success: false,
   error: `No ${what} configured — set one in Settings → Target.`
 })
 
-// The running adb's release, for the status bar — the bundled binary unless `config.adbPath` overrides it (18b).
 export const getAdbVersion = async (): Promise<string | null> => {
   try {
     const config = loadConfig()
@@ -62,11 +56,10 @@ export const getAdbVersion = async (): Promise<string | null> => {
   }
 }
 
-// Get list of connected devices
 export const getConnectedDevices = async (): Promise<AdbDevice[]> => {
   try {
     const config = loadConfig()
-    // Quoted: an overridden adb path (18b) is arbitrary user input and routinely contains spaces — `C:\Program Files\platform-tools\adb.exe`.
+
     const adb = `"${getAdbPath(config.adbPath)}"`
     const command = `${adb} devices -l`
     logger.info('Getting connected devices:', command)
@@ -78,7 +71,7 @@ export const getConnectedDevices = async (): Promise<AdbDevice[]> => {
       return []
     }
 
-    const lines = stdout.split('\n').slice(1) // Skip "List of devices attached"
+    const lines = stdout.split('\n').slice(1)
     const devices: AdbDevice[] = []
 
     for (const line of lines) {
@@ -91,7 +84,6 @@ export const getConnectedDevices = async (): Promise<AdbDevice[]> => {
       const id = parts[0]
       const status = parts[1]
 
-      // Extract model if available
       const modelMatch = trimmedLine.match(/model:(\S+)/)
       const model = modelMatch ? modelMatch[1] : undefined
 
@@ -106,7 +98,6 @@ export const getConnectedDevices = async (): Promise<AdbDevice[]> => {
   }
 }
 
-/** Send a command as a broadcast. */
 export const executeAdbCommand = async (type: string, value: string): Promise<AdbCommandResult> => {
   const config = loadConfig()
   const commandType = type === 'speech' ? 'speech' : 'barcode'
@@ -123,10 +114,8 @@ export const executeAdbCommand = async (type: string, value: string): Promise<Ad
   })
 }
 
-// Sleep helper function
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-/** The two device actions — Reset client and Clear storage (area 25) — are both "stop the client, then bring it back", against the same... */
 interface TargetRun {
   adb: string
   deviceFlag: string
@@ -135,7 +124,6 @@ interface TargetRun {
   launcherActivity: string
 }
 
-/** Both halves of the target are required before *either* action runs — stopping a client we then can't relaunch leaves the device worse... */
 const resolveTargetRun = (): { run: TargetRun } | { refusal: AdbCommandResult } => {
   const config = loadConfig()
   const { packageId, launcherActivity } = config.target
@@ -154,7 +142,6 @@ const resolveTargetRun = (): { run: TargetRun } | { refusal: AdbCommandResult } 
   }
 }
 
-/** The launch half both actions end on. */
 const launchTarget = async (run: TargetRun): Promise<AdbCommandResult> => {
   const { adb, deviceFlag, packageId, launcherActivity } = run
   const startCommand = `"${adb}" ${deviceFlag}shell am start -n ${packageId}/${launcherActivity}`
@@ -170,14 +157,12 @@ const launchTarget = async (run: TargetRun): Promise<AdbCommandResult> => {
   }
 }
 
-// Application reset with device selection
 export const executeAdbApplicationReset = async (): Promise<AdbCommandResult> => {
   const resolved = resolveTargetRun()
   if ('refusal' in resolved) return resolved.refusal
   const { run } = resolved
 
   try {
-    // First command: Force stop
     const forceStopCommand = `"${run.adb}" ${run.deviceFlag}shell am force-stop ${run.packageId}`
     logger.info(`Force stopping application with ADB command: ${forceStopCommand}`)
 
@@ -192,7 +177,6 @@ export const executeAdbApplicationReset = async (): Promise<AdbCommandResult> =>
       }
     }
 
-    // Sleep for a specified time (e.g., 2000ms = 2 seconds)
     logger.info('Waiting for application to fully stop...')
     await sleep(2000)
 
@@ -206,7 +190,6 @@ export const executeAdbApplicationReset = async (): Promise<AdbCommandResult> =>
   }
 }
 
-/** Clear the target's storage, run the provisioning routine, then relaunch (areas 25 and 28). */
 export const executeAdbClearStorage = async (
   onProvisionProgress?: (progress: ProvisionProgress) => void
 ): Promise<ClearStorageResult> => {
@@ -227,7 +210,7 @@ export const executeAdbClearStorage = async (
       return { success: false, error: describeExecError(error) }
     }
 
-    // `pm clear` prints `Success` or `Failed` and exits 0 either way, so the exec resolving proves nothing.
+    // pm clear can print Failed while still exiting successfully.
     if (!/^Success/m.test(output)) {
       logger.error('Clear storage did not report success:', output)
       return {
@@ -237,11 +220,9 @@ export const executeAdbClearStorage = async (
     }
 
     logger.info('Clear storage command completed successfully')
-    // Same settle as a reset before the relaunch.
+
     await sleep(2000)
 
-    // With no steps configured this returns immediately and the path below is
-    // byte-for-byte what area 25 shipped.
     const provision = await runProvision({ onProgress: onProvisionProgress })
     if (!provision.success) {
       return {

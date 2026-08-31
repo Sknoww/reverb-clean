@@ -35,13 +35,12 @@ interface BroadcastLogger {
 
 const execFile = promisify(execFileCallback) as BroadcastExecutor
 
-/** Quote one argv value for the Android-side shell. No host shell sees this string. */
+// adb passes this string through the Android shell, so values need remote-shell quoting.
 export const quoteRemoteShellArg = (value: string): string => `'${value.replace(/'/g, `'\\''`)}'`
 
 export const buildBroadcastArgs = (request: BroadcastRequest): string[] => {
   const deviceArgs = request.deviceId ? ['-s', request.deviceId] : []
-  // adb joins arguments following `shell` into one remote command without escaping them.
-  // Quote the two configured/arbitrary values here so the Android shell passes each byte-for-byte to `am`.
+
   const remoteCommand = [
     'am broadcast -a',
     quoteRemoteShellArg(request.intent),
@@ -52,7 +51,6 @@ export const buildBroadcastArgs = (request: BroadcastRequest): string[] => {
   return [...deviceArgs, 'shell', remoteCommand]
 }
 
-/** Run a command broadcast without exposing its payload to a host shell, logs, or errors. */
 export const runAdbBroadcast = async (
   request: BroadcastRequest,
   dependencies: { execute?: BroadcastExecutor; log?: BroadcastLogger } = {}
@@ -61,6 +59,7 @@ export const runAdbBroadcast = async (
   const log = dependencies.log ?? logger
   const args = buildBroadcastArgs(request)
 
+  // Broadcast payloads may be sensitive; log their size, never their contents.
   log.info('Executing ADB command broadcast', {
     type: request.type,
     payloadLength: Buffer.byteLength(request.value, 'utf8'),

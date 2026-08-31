@@ -9,6 +9,10 @@ import {
 import logger from '../logger'
 import { decodeBarcodes } from './barcodeScanner'
 import {
+  captureMacInteractiveRegion,
+  type MacInteractiveCaptureResult
+} from './macScreenshotCapture'
+import {
   captureDisplays,
   normalizeBarcodes,
   type ScreenBarcode,
@@ -45,6 +49,7 @@ interface RegionScannerDependencies {
   crop: typeof cropRegion
   decode: typeof decodeBarcodes
   delay: (milliseconds: number) => Promise<void>
+  captureMac: () => Promise<MacInteractiveCaptureResult>
 }
 
 interface OverlayEntry {
@@ -254,17 +259,14 @@ export const selectScreenBarcodeRegion = async (
     getPermissionStatus: () => systemPreferences.getMediaAccessStatus('screen'),
     capture: () =>
       captureDisplays({
-        platform: process.platform,
         getDisplays: () => screen.getAllDisplays(),
-        getSources: (options) => desktopCapturer.getSources(options),
-        getPermissionStatus: () => systemPreferences.getMediaAccessStatus('screen'),
-        decode: decodeBarcodes,
-        delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds))
+        getSources: (options) => desktopCapturer.getSources(options)
       }),
     select: selectRegion,
     crop: cropRegion,
     decode: decodeBarcodes,
     delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+    captureMac: captureMacInteractiveRegion,
     ...dependencyOverrides
   }
 
@@ -279,20 +281,48 @@ export const selectScreenBarcodeRegion = async (
     onProgress('capturing')
     window.hide()
     await dependencies.delay(120)
-    const captured = await dependencies.capture()
-    if (!Array.isArray(captured)) {
-      if (dependencies.platform === 'darwin') {
+
+    if (dependencies.platform === 'darwin') {
+      onProgress('selecting')
+      const captured = await dependencies.captureMac()
+      if (captured.status !== 'captured') {
         const permission = dependencies.getPermissionStatus()
         if (permission !== 'granted') return permissionResult(permission)
+        return captured
       }
+
+      const permission = dependencies.getPermissionStatus()
+      if (permission !== 'granted') return permissionResult(permission)
+      onProgress('decoding')
+      let decoded: Awaited<ReturnType<typeof decodeBarcodes>>
+      try {
+        decoded = await dependencies.decode(captured.bytes)
+      } catch (error) {
+        logger.error('Barcode decoder threw for native selected region', {
+          error: error instanceof Error ? error.message : String(error)
+        })
+        return { status: 'decoder-failed' }
+      }
+      if (decoded.status === 'error') return { status: 'decoder-failed' }
+      if (decoded.status === 'not-found') return decoded
+
+      const decodedBarcodes = decoded.status === 'found' ? [decoded.barcode] : decoded.barcodes
+      const barcodes = normalizeBarcodes(
+        decodedBarcodes.map<ScreenBarcode>((barcode) => ({
+          ...barcode,
+          displayId: 'native-selection',
+          displayNumber: 1
+        }))
+      )
+      if (barcodes.length === 1) return { status: 'found', barcode: barcodes[0] }
+      return { status: 'multiple', barcodes }
+    }
+
+    const captured = await dependencies.capture()
+    if (!Array.isArray(captured)) {
       return captured
     }
     frames = captured
-
-    if (dependencies.platform === 'darwin') {
-      const permission = dependencies.getPermissionStatus()
-      if (permission !== 'granted') return permissionResult(permission)
-    }
 
     onProgress('selecting')
     const selection = await dependencies.select(frames, assets)

@@ -203,36 +203,64 @@ describe('screenBarcodeScanner', () => {
   it('attempts macOS capture before returning denied so TCC can register the app', async () => {
     const events: string[] = []
     const { window } = captureWindow(events)
-    const getSources = vi.fn(async () => [])
+    const captureMac = vi.fn(async () => ({ status: 'capture-failed' as const }))
 
     const result = await scanScreenBarcodes(window, undefined, {
       platform: 'darwin',
       getPermissionStatus: () => 'denied',
       getDisplays: () => [display(11, 100, 100, 1)],
-      getSources,
+      captureMac,
       delay: async () => undefined
     })
 
     expect(result).toEqual({ status: 'permission-denied', permission: 'denied' })
-    expect(getSources).toHaveBeenCalledOnce()
+    expect(captureMac).toHaveBeenCalledOnce()
     expect(events).toEqual(['hide', 'show', 'focus'])
+  })
+
+  it('uses native macOS frames without touching Electron capture', async () => {
+    const { window } = captureWindow()
+    const getSources = vi.fn()
+    const captureMac = vi.fn(async () => [
+      {
+        displayId: '11',
+        displayNumber: 1,
+        bounds: { x: 0, y: 0, width: 100, height: 100 },
+        scaleFactor: 2,
+        bytes: Buffer.from('native png')
+      }
+    ])
+
+    const result = await scanScreenBarcodes(window, undefined, {
+      platform: 'darwin',
+      getPermissionStatus: () => 'granted',
+      getDisplays: () => [display(11, 100, 100, 2)],
+      getSources,
+      captureMac,
+      decode: vi.fn(async () => ({ status: 'not-found' as const })),
+      delay: async () => undefined
+    })
+
+    expect(result).toEqual({ status: 'not-found' })
+    expect(captureMac).toHaveBeenCalledOnce()
+    expect(getSources).not.toHaveBeenCalled()
   })
 
   it('does not attempt macOS capture when access is restricted', async () => {
     const { window } = captureWindow()
-    const getSources = vi.fn()
+    const captureMac = vi.fn()
 
     const result = await scanScreenBarcodes(window, undefined, {
       platform: 'darwin',
       getPermissionStatus: () => 'restricted',
       getDisplays: () => [display(11, 100, 100, 1)],
-      getSources,
+      captureMac,
       delay: async () => undefined
     })
 
     expect(result).toEqual({ status: 'permission-denied', permission: 'restricted' })
     expect(window.hide).not.toHaveBeenCalled()
-    expect(getSources).not.toHaveBeenCalled()
+    expect(captureMac).not.toHaveBeenCalled()
   })
 
   it('restores and refocuses the same window after a thrown capture error', async () => {

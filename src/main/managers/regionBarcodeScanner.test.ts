@@ -35,6 +35,18 @@ const frame = (bounds: Rectangle, scaleFactor = 2): ScreenCaptureFrame => ({
   bytes: Buffer.from('frame')
 })
 
+const barcode = (text: string, x: number) => ({
+  text,
+  format: 'QRCode' as const,
+  symbology: 'QRCode' as const,
+  position: {
+    topLeft: { x, y: 0 },
+    topRight: { x: x + 1, y: 0 },
+    bottomLeft: { x, y: 1 },
+    bottomRight: { x: x + 1, y: 1 }
+  }
+})
+
 beforeEach(() => {
   vi.clearAllMocks()
 })
@@ -173,7 +185,7 @@ describe('regionBarcodeScanner', () => {
 
   it('attempts macOS capture before returning denied so TCC can register the app', async () => {
     const events: string[] = []
-    const capture = vi.fn(async () => ({ status: 'capture-failed' as const }))
+    const captureMac = vi.fn(async () => ({ status: 'capture-failed' as const }))
     const window = {
       isVisible: () => true,
       isMinimized: () => false,
@@ -191,13 +203,65 @@ describe('regionBarcodeScanner', () => {
       {
         platform: 'darwin',
         getPermissionStatus: () => 'denied',
-        capture,
+        captureMac,
         delay: async () => undefined
       }
     )
 
     expect(result).toEqual({ status: 'permission-denied', permission: 'denied' })
-    expect(capture).toHaveBeenCalledOnce()
+    expect(captureMac).toHaveBeenCalledOnce()
     expect(events).toEqual(['hide', 'show', 'focus'])
+  })
+
+  it.each([
+    ['not-found', { status: 'not-found' as const }, { status: 'not-found' }],
+    [
+      'one',
+      {
+        status: 'found' as const,
+        barcode: barcode('one', 0)
+      },
+      { status: 'found', barcode: { text: 'one', displayId: 'native-selection' } }
+    ],
+    [
+      'many',
+      {
+        status: 'multiple' as const,
+        barcodes: [barcode('right', 10), barcode('left', 0)]
+      },
+      {
+        status: 'multiple',
+        barcodes: [
+          { text: 'left', displayId: 'native-selection' },
+          { text: 'right', displayId: 'native-selection' }
+        ]
+      }
+    ]
+  ])('normalizes the native macOS %s decode outcome', async (_, decoded, expected) => {
+    const window = {
+      isVisible: () => true,
+      isMinimized: () => false,
+      isDestroyed: () => false,
+      hide: vi.fn(),
+      show: vi.fn(),
+      focus: vi.fn(),
+      restore: vi.fn()
+    }
+
+    const result = await selectScreenBarcodeRegion(
+      window as unknown as import('electron').BrowserWindow,
+      { preloadPath: 'unused', rendererFile: 'unused' },
+      undefined,
+      {
+        platform: 'darwin',
+        getPermissionStatus: () => 'granted',
+        captureMac: async () => ({ status: 'captured', bytes: Buffer.from('native selection') }),
+        decode: vi.fn(async () => decoded),
+        select: vi.fn(),
+        delay: async () => undefined
+      }
+    )
+
+    expect(result).toMatchObject(expected)
   })
 })

@@ -1,4 +1,3 @@
-// src/main/projectManager.ts
 import { app } from 'electron'
 import fs from 'fs'
 import path from 'path'
@@ -7,22 +6,17 @@ import { AdbCommand, Flow, Project } from '../types'
 
 let projectsDir = path.join(app.getPath('userData'), 'projects')
 
-// Function to update the projects directory
 export const setProjectsDirectory = (directory: string): void => {
   projectsDir = directory
 
-  // Create projects directory if it doesn't exist
   if (!fs.existsSync(projectsDir)) {
     fs.mkdirSync(projectsDir, { recursive: true })
   }
 }
 
-// Initialize the directory
 if (!fs.existsSync(projectsDir)) {
   fs.mkdirSync(projectsDir, { recursive: true })
 }
-
-// --- Schema validation and migration helpers ---
 
 const validateAndMigrateCommand = (command: any): AdbCommand | null => {
   if (!command || typeof command !== 'object') {
@@ -102,8 +96,6 @@ const validateAndMigrateProject = (projectData: any): Project | null => {
   }
 }
 
-// --- CRUD operations ---
-
 export const saveProject = (project: Project): void => {
   logger.info('Saving project:', project)
   const filePath = path.join(projectsDir, `${project.id}.project.json`)
@@ -136,7 +128,6 @@ export const getProject = (projectId: string): Project | null => {
     } catch (parseError) {
       logger.error('Failed to parse project JSON:', parseError)
 
-      // Backup corrupted file
       try {
         const backupPath = filePath + '.corrupted.' + Date.now()
         fs.copyFileSync(filePath, backupPath)
@@ -155,7 +146,6 @@ export const getProject = (projectId: string): Project | null => {
       return null
     }
 
-    // If migration changed the data, save the migrated version
     if (JSON.stringify(parsedData) !== JSON.stringify(validatedProject)) {
       logger.info('Project schema migrated, saving updated version')
       try {
@@ -181,7 +171,6 @@ export const getAllProjects = (): Project[] => {
     return []
   }
 
-  // Read config directly instead of calling loadConfig() to avoid race condition
   const configFilePath = path.join(app.getPath('userData'), 'config.json')
   let recentProjectId = ''
   let mostRecentProjectIds: string[] = []

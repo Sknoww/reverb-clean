@@ -19,9 +19,6 @@ import {
 } from './modalShell'
 import { PROVISION_TYPES, ProvisionTypeIcon } from './provisionStepMeta'
 
-// The provisioning step editor (area 28b1), on C7's shared chrome (§1.8) like the command and flow modals.
-
-/** A superset draft: switching type keeps what the other types can't hold. */
 interface StepDraft {
   id: string
   type: ProvisionStepType
@@ -35,7 +32,6 @@ interface StepDraft {
   durationMs: string
 }
 
-/** Mirrors `PROVISION_WAIT_BOUNDS` in configManager. */
 const WAIT_BOUNDS = { min: 0, max: 600_000 }
 
 const emptyDraft = (): StepDraft => ({
@@ -51,7 +47,6 @@ const emptyDraft = (): StepDraft => ({
   durationMs: '1000'
 })
 
-/** A step back into the flat draft. */
 function toDraft(step: ProvisionStep): StepDraft {
   const draft = { ...emptyDraft(), id: step.id, type: step.type, label: step.label ?? '' }
 
@@ -66,8 +61,6 @@ function toDraft(step: ProvisionStep): StepDraft {
         sync: step.sync === true
       }
     case 'grant':
-      // One per line in the editor, one array in config — a permission is a long
-      // dotted string and a comma-separated row of them is unreadable.
       return { ...draft, permissions: step.permissions.join('\n') }
     case 'wait':
       return { ...draft, durationMs: String(step.durationMs) }
@@ -80,7 +73,6 @@ const permissionList = (text: string): string[] =>
     .map((line) => line.trim())
     .filter(Boolean)
 
-/** The one condition per type that main would drop the step for. */
 function validate(draft: StepDraft): Partial<Record<keyof StepDraft, string>> {
   switch (draft.type) {
     case 'shell':
@@ -103,7 +95,6 @@ function validate(draft: StepDraft): Partial<Record<keyof StepDraft, string>> {
   }
 }
 
-/** The draft narrowed back to the union — only ever called on a valid draft. */
 function toStep(draft: StepDraft): ProvisionStep {
   const base = { id: draft.id, ...(draft.label.trim() ? { label: draft.label.trim() } : {}) }
 
@@ -137,7 +128,6 @@ function toStep(draft: StepDraft): ProvisionStep {
   }
 }
 
-/** A labelled checkbox for the two per-step flags. */
 function FlagField({
   id,
   checked,
@@ -175,14 +165,13 @@ export function ProvisionStepModal({
   onSave
 }: {
   isOpen: boolean
-  /** The step being edited, or null for a new one. */
+
   step: ProvisionStep | null
   onClose: () => void
   onSave: (step: ProvisionStep) => void
 }) {
   const [draft, setDraft] = useState<StepDraft>(() => (step ? toDraft(step) : emptyDraft()))
-  // Errors appear on submit, not per keystroke — a required field is not a
-  // mistake until you try to save. Editing one clears its own message (C7).
+
   const [errors, setErrors] = useState<Partial<Record<keyof StepDraft, string>>>({})
 
   useEffect(() => {
@@ -275,7 +264,6 @@ export function ProvisionStepModal({
                   checked={draft.continueOnError}
                   onChange={(checked) => set('continueOnError', checked)}
                   label="Keep going if this step fails"
-                  // The reason this flag exists at all, stated where it's set.
                   hint="For steps that fail harmlessly — `mkdir` on a directory that already exists. Every other failure stops the routine before the relaunch."
                 />
               </>
@@ -320,8 +308,6 @@ export function ProvisionStepModal({
                   checked={draft.sync}
                   onChange={(checked) => set('sync', checked)}
                   label="Skip files already on the device"
-                  // Off by default in the type for this reason; the field says it
-                  // rather than leaving the fast path looking free.
                   hint="`adb push --sync` — seconds instead of minutes on a re-push, but it trusts timestamps. A file rebuilt without its mtime moving is silently not pushed."
                 />
               </>
@@ -374,10 +360,6 @@ export function ProvisionStepModal({
               </Field>
             )}
 
-            {/* Last, and optional on every type: without one the step describes
-                itself from its own fields, which is usually clearer than a name
-                someone had to invent — and can't go stale against the command it
-                names. Progress and the failure report use whatever this is. */}
             <Field
               htmlFor="provision-label"
               label="Label"

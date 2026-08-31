@@ -13,7 +13,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Project } from '@/types'
 import { useEffect, useState } from 'react'
 
-// Default empty project template
 const defaultProject: Project = {
   id: '',
   name: '',
@@ -45,7 +44,6 @@ export function ProjectModal({
   titleText,
   submitLabel
 }: ProjectModalProps) {
-  // State
   const [editedProject, setEditedProject] = useState<Project>(project || { ...defaultProject })
   const isNewProject = !project
 
@@ -57,7 +55,6 @@ export function ProjectModal({
     }
   }, [project, isOpen])
 
-  // Handlers
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setEditedProject((prev) => ({
@@ -85,7 +82,6 @@ export function ProjectModal({
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            {/* Name Field */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
                 Name
@@ -100,7 +96,6 @@ export function ProjectModal({
               />
             </div>
 
-            {/* Description Field */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="description" className="text-right">
                 Description
@@ -125,7 +120,6 @@ export function ProjectModal({
           </DialogFooter>
         </form>
 
-        {/* Error Message */}
         {error && (
           <div className="flex items-center justify-center gap-2 mt-4 text-destructive">
             <svg

@@ -6,15 +6,12 @@ import { ArrowUpDown, Loader2, TriangleAlert } from 'lucide-react'
 import { useRef } from 'react'
 import { MODAL_CONTENT, ModalBody, ModalHeader } from './modalShell'
 
-// The apply preview (S2, frame 6c) — the one destructive moment (spec D9), and the only place Sync writes.
-
 function tail(value: string, segments = 3): string {
   const parts = value.replace(/\\/g, '/').split('/').filter(Boolean)
   if (parts.length <= segments) return value
   return `…/${parts.slice(-segments).join('/')}`
 }
 
-/** Trims `2025-03-19` to the frame's `03_19` — the year is constant noise here. */
 function shortVersion(fileName: string | null): string {
   if (!fileName) return ''
   const match = /_(\d{4})_(\d{2})_(\d{2})(?:_(\d+))?\.[^.]*$/.exec(fileName)
@@ -85,7 +82,6 @@ export function SyncApplyModal({
       <DialogContent
         className={MODAL_CONTENT}
         showCloseButton={false}
-        // Left alone, focus lands on the header's ✕ and rings it.
         onOpenAutoFocus={(event) => {
           event.preventDefault()
           cancelRef.current?.focus()
@@ -164,11 +160,6 @@ export function SyncApplyModal({
                 </div>
               </div>
 
-              {/* Rule 7: the local YAML is gitignored, so the backup is the only
-                  undo that exists. Saying "inside a git checkout" would imply a
-                  recoverability this file does not have — and until F3 the copy
-                  named a single `.bak` that the *next* apply overwrote, which
-                  implied one it did not have either. It names the depth now. */}
               <div className="flex items-start gap-2 rounded-[9px] border border-hairline bg-surface-panel px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
                 <TriangleAlert
                   className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-stale"

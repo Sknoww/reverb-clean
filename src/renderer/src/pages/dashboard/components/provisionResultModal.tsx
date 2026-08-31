@@ -7,11 +7,7 @@ import { useRef } from 'react'
 import { MODAL_CONTENT, ModalBody, ModalHeader } from './modalShell'
 import { ProvisionTypeIcon } from './provisionStepMeta'
 
-// The failure report for a provisioning run (area 28b2), on C7's chrome (§1.8).
-
-/** `steps` is empty when the routine refused before running anything. */
 function StepRow({ step }: { step: ProvisionStepResult }) {
-  // `continued` is its own state, not a third success value: the step failed and `continueOnError` let the routine carry on, which the...
   const glyph = step.success ? '✓' : step.continued ? '!' : '✕'
   const tone = step.success ? 'text-success' : step.continued ? 'text-stale' : 'text-red-300'
 
@@ -35,24 +31,10 @@ function StepRow({ step }: { step: ProvisionStepResult }) {
         </span>
       </div>
 
-      {/* **Two kinds of text, and the typeface is what separates them** — 28b1's
-          finding one chunk on, caught the same way, by looking at a screenshot.
-          `classify` sets `error` to the raw device output for a `shell` or `push`
-          failure and to a sentence of the app's own for a timeout, a spawn
-          failure or a partial `grant`. Rendering both as prose put a
-          `cat: … No such file or directory` in the proportional font directly
-          under a mono step label — the same machine value in two typefaces.
-          So the comparison against `output` does double duty: it decides whether
-          there is a sentence to print *and* whether this step's output is the
-          error rather than context for it. */}
       {!step.success && step.error && step.error !== step.output && (
         <p className="pl-5 text-xs leading-snug text-red-300">{step.error}</p>
       )}
 
-      {/* The well: raw device output, or a `grant`'s per-permission ✓/✕ list —
-          28a keeps attempting after the first refusal, so it knows about all of
-          them. Mono on `surface-chrome`, C6's result-card treatment (§1.7),
-          tinted red only when the output *is* the failure. */}
       {!step.success && step.output && (
         <pre
           className={cn(
@@ -71,7 +53,7 @@ export function ProvisionResultModal({
   isOpen,
   onClose,
   result,
-  /** What the run was part of, when it wasn't the standalone action. */
+
   lead
 }: {
   isOpen: boolean
@@ -82,7 +64,6 @@ export function ProvisionResultModal({
   const closeRef = useRef<HTMLButtonElement>(null)
 
   const handleOpenLogs = async () => {
-    // The same two calls Settings' Logging row makes (18a) — the full transcript is already in the log, and a dialog that says so without a...
     const directory = await window.loggerAPI.getLogsDirectory()
     if (directory) await window.dialogAPI.openInEditor(directory)
   }
@@ -102,9 +83,7 @@ export function ProvisionResultModal({
           title="Provisioning failed"
           onClose={onClose}
         />
-        {/* A refusal ran nothing, so promising a step list would describe a body
-            that isn't there — the one reader who can't see that for themselves
-            is the one this text is for. */}
+
         <DialogDescription className="sr-only">
           {result.steps.length === 0
             ? 'The provisioning routine refused to start. The reason follows.'
@@ -114,18 +93,10 @@ export function ProvisionResultModal({
         <ModalBody>
           {lead && <p className="text-[13px] leading-relaxed text-muted-foreground">{lead}</p>}
 
-          {/* A refusal has no steps at all — nothing ran, and 28a's message
-              already names the section to go to. It is the whole body here. */}
           {result.steps.length === 0 ? (
             <p className="text-[13px] leading-relaxed text-red-300">{result.error}</p>
           ) : (
             <>
-              {/* Says only what is true of *every* failed run: where it stopped,
-                  and that the rest didn't run. **What it deliberately doesn't
-                  claim is that the client was left stopped** — that is the
-                  clear's `lead`, because a standalone run never stops anything,
-                  and a report that says otherwise describes an action the user
-                  didn't take. */}
               <p className="text-[13px] leading-relaxed text-muted-foreground">
                 Step {(result.failedIndex ?? result.steps.length - 1) + 1} stopped the routine — the
                 steps after it did not run.

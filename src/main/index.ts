@@ -14,6 +14,7 @@ import {
   getConnectedDevices
 } from './managers/adbManager'
 import { executeJsScript } from './managers/jsManager'
+import { sweepStaleMacCaptureDirectories } from './managers/macScreenshotCapture'
 import { runProvision } from './managers/provisionManager'
 import {
   cancelRegionSelection,
@@ -24,6 +25,12 @@ import {
   selectScreenBarcodeRegion
 } from './managers/regionBarcodeScanner'
 import { scanScreenBarcodes } from './managers/screenBarcodeScanner'
+import {
+  getScreenPermissionStatus,
+  observeScreenPermissionScan,
+  relaunchForScreenPermission,
+  repairScreenPermission
+} from './managers/screenPermissionManager'
 import { exportBundle, importBundle } from './managers/backupManager'
 import {
   getConfigFilePath,
@@ -62,7 +69,6 @@ import {
   saveProject
 } from './managers/projectManager'
 
-// First statement in main, so everything below is covered (F4).
 installCrashHandler()
 
 nativeTheme.themeSource = 'dark'
@@ -75,7 +81,7 @@ function createWindow(): void {
     minWidth: 1000,
     show: false,
     autoHideMenuBar: true,
-    // Let a click on an unfocused window reach the control it landed on instead of being spent focusing the window (22).
+
     acceptFirstMouse: true,
     ...(process.platform === 'linux' ? { logo } : {}),
     webPreferences: {
@@ -107,14 +113,10 @@ function createWindow(): void {
   }
 }
 
-// One copy at a time (22).
 if (!app.requestSingleInstanceLock()) {
-  // Hand off to the copy that already holds the lock, and leave before this one
-  // reads config or opens a window.
   app.quit()
 } else {
   app.on('second-instance', () => {
-    // Someone launched us again — surface the window we already have.
     const [existingWindow] = BrowserWindow.getAllWindows()
     if (!existingWindow) return
     if (existingWindow.isMinimized()) existingWindow.restore()
@@ -123,17 +125,22 @@ if (!app.requestSingleInstanceLock()) {
   })
 
   app.whenReady().then(() => {
-    // Set app user model id for windows
     electronApp.setAppUserModelId('com.electron')
 
-    // Bring the logger onto the configured level/retention before anything else logs (18b).
     applyLoggingConfig(loadConfig().logging)
+    if (process.platform === 'darwin') {
+      void sweepStaleMacCaptureDirectories()
+      void getScreenPermissionStatus().catch((error) => {
+        logger.warn('Could not initialize screen permission recovery', {
+          error: error instanceof Error ? error.message : String(error)
+        })
+      })
+    }
 
     app.on('browser-window-created', (_, window) => {
       optimizer.watchWindowShortcuts(window)
     })
 
-    // IPC test
     ipcMain.on('ping', () => logger.debug('pong'))
 
     createWindow()
@@ -152,17 +159,13 @@ app.on('window-all-closed', () => {
   }
 })
 
-/** `provision:progress` — the app's first main → renderer push (28b2). */
 const progressSender =
   (event: IpcMainInvokeEvent) =>
   (progress: ProvisionProgress): void => {
     if (!event.sender.isDestroyed()) event.sender.send('provision:progress', progress)
   }
 
-// Set up IPC handlers
-// Replace your setupIPC function with this updated version
 function setupIPC() {
-  // File handlers
   ipcMain.handle('dialog:selectFolder', (_, title, defaultPath) => selectFolder(title, defaultPath))
   ipcMain.handle('dialog:selectFile', () => selectFile())
   ipcMain.handle('dialog:selectYamlFile', (_, title, defaultPath) =>
@@ -177,7 +180,6 @@ function setupIPC() {
     openTempInEditor(content, extension)
   )
 
-  // Config handlers
   ipcMain.handle('config:get', () => loadConfig())
   ipcMain.handle('config:save', (_, config) => saveConfig(config))
   ipcMain.handle('config:getFilePath', () => getConfigFilePath())
@@ -190,31 +192,25 @@ function setupIPC() {
   ipcMain.handle('config:connectorRoot', (_, connectorRoot) => updateConnectorRoot(connectorRoot))
   ipcMain.handle('config:sync', (_, sync) => updateSyncConfig(sync))
 
-  // Settings' Behavior / Logging / Paths sections (18b)
   ipcMain.handle('config:behavior', (_, behavior) => updateBehaviorConfig(behavior))
   ipcMain.handle('config:logging', (_, logging) => updateLoggingConfig(logging))
   ipcMain.handle('config:adbPath', (_, adbPath) => updateAdbPath(adbPath))
   ipcMain.handle('config:maxSnapshots', (_, max) => updateMaxSnapshots(max))
 
-  // Settings' Target section (area 19)
   ipcMain.handle('config:target', (_, target) => updateTargetConfig(target))
 
-  // Settings' Provisioning section (area 28)
   ipcMain.handle('config:provision', (_, provision) => updateProvisionConfig(provision))
 
-  // Config backup handlers (area 17), surfaced by Settings' Data section (18a).
   ipcMain.handle('config:listSnapshots', () => listConfigSnapshots())
   ipcMain.handle('config:restoreSnapshot', (_, fileName) => restoreConfigSnapshot(fileName))
   ipcMain.handle('config:exportBundle', () => exportBundle())
   ipcMain.handle('config:importBundle', () => importBundle())
 
-  // Workflow sync handlers
   ipcMain.handle('sync:scan', () => scanSync())
   ipcMain.handle('sync:plan', (_, zones) => planSync(zones))
   ipcMain.handle('sync:apply', (_, zones) => applySync(zones))
   ipcMain.handle('sync:branch', () => getSyncBranch())
 
-  // Project handlers
   ipcMain.handle('project:save', (_, project) => saveProject(project))
   ipcMain.handle('project:get', (_, projectId) => getProject(projectId))
   ipcMain.handle('project:getAll', () => getAllProjects())
@@ -223,26 +219,28 @@ function setupIPC() {
     duplicateProject(sourceFilename, newName, newDescription)
   )
 
-  // Logger handlers
   ipcMain.handle('logger:getLogsDirectory', () => getLogsDirectory())
 
-  // Quick-scan screenshots never cross into the renderer.
   ipcMain.handle('barcode:scanScreens', async (event, requestId: string) => {
     const window = BrowserWindow.fromWebContents(event.sender)
     if (!window) return { status: 'capture-failed' as const }
 
-    return scanScreenBarcodes(window, (progress) => {
+    const result = await scanScreenBarcodes(window, (progress) => {
       if (!event.sender.isDestroyed()) {
         event.sender.send('barcode:progress', { requestId, progress })
       }
     })
+    if (result.status !== 'busy') {
+      await observeScreenPermissionScan()
+    }
+    return result
   })
 
   ipcMain.handle('barcode:selectRegion', async (event, requestId: string) => {
     const window = BrowserWindow.fromWebContents(event.sender)
     if (!window) return { status: 'capture-failed' as const }
 
-    return selectScreenBarcodeRegion(
+    const result = await selectScreenBarcodeRegion(
       window,
       {
         preloadPath: join(__dirname, '../preload/index.js'),
@@ -255,6 +253,10 @@ function setupIPC() {
         }
       }
     )
+    if (result.status !== 'busy') {
+      await observeScreenPermissionScan()
+    }
+    return result
   })
 
   ipcMain.handle('barcode:regionInitialize', (event) => initializeRegionSelector(event.sender.id))
@@ -265,14 +267,16 @@ function setupIPC() {
   )
   ipcMain.on('barcode:regionCancel', (event) => cancelRegionSelection(event.sender.id))
 
-  ipcMain.handle('barcode:openScreenRecordingSettings', async () => {
+  ipcMain.handle('screenPermission:status', () => getScreenPermissionStatus())
+  ipcMain.handle('screenPermission:repair', () => repairScreenPermission())
+  ipcMain.handle('screenPermission:openSettings', async () => {
     if (process.platform !== 'darwin') return
     await shell.openExternal(
       'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture'
     )
   })
+  ipcMain.handle('screenPermission:relaunch', () => relaunchForScreenPermission())
 
-  // ADB handlers - UPDATED to include device selection
   ipcMain.handle('adb:getDevices', async () => {
     try {
       return await getConnectedDevices()
@@ -315,7 +319,6 @@ function setupIPC() {
     }
   })
 
-  /** The provisioning routine on its own (area 28). */
   ipcMain.handle('provision:run', async (event) => {
     try {
       return await runProvision({ onProgress: progressSender(event) })
@@ -324,7 +327,6 @@ function setupIPC() {
     }
   })
 
-  // JS execution handlers
   ipcMain.handle('js:execute', async (_, script: string) => {
     try {
       const config = loadConfig()

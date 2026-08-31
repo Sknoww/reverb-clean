@@ -1,4 +1,3 @@
-// JetBrains Mono ships as unicode-range subsets, so only the latin ones are actually fetched.
 import '@fontsource-variable/jetbrains-mono/wght.css'
 import './assets/main.css'
 

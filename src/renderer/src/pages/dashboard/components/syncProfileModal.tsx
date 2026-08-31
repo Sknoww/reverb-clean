@@ -14,20 +14,18 @@ import {
   ModalHeader
 } from './modalShell'
 
-// Profile modals (S3, frame 6f) — C7's shared chrome on the same 468px card.
-
 const MARKER = <ArrowUpDown className="h-3.5 w-3.5 text-accent-indigo" aria-hidden />
 
 interface ProfileFormModalProps {
   isOpen: boolean
   onClose: () => void
   onSubmit: (name: string) => void
-  /** Draws the read-only zone well — the set being saved (create only). */
+
   zones?: string[]
   initialName?: string
   title: string
   submitLabel: string
-  /** Every other profile's name, for the inline duplicate check. */
+
   takenNames: string[]
 }
 
@@ -55,8 +53,7 @@ export function SyncProfileFormModal({
     event.preventDefault()
     const trimmed = name.trim()
     if (!trimmed) return
-    // Case-insensitive: two profiles called `QC` and `qc` in one dropdown is a
-    // trap, not a feature.
+
     if (takenNames.some((taken) => taken.toLowerCase() === trimmed.toLowerCase())) {
       setDuplicate(true)
       return
@@ -152,10 +149,9 @@ export function SyncProfileDeleteModal({
       <DialogContent
         className={MODAL_CONTENT}
         showCloseButton={false}
-        // Same rule as the apply preview: the safe control takes focus so Enter
-        // can't destroy something the tester hasn't read.
         onOpenAutoFocus={(event) => {
           event.preventDefault()
+          // Focus Cancel so Enter cannot confirm deletion accidentally.
           cancelRef.current?.focus()
         }}
       >

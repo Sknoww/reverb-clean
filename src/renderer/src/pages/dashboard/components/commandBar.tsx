@@ -13,11 +13,10 @@ interface CommandBarProps {
   handleSendCommand: (command: AdbCommand) => void
   handleAddCommand: (isCommon: boolean, inputValue?: string, type?: string) => void
   hasProject?: boolean
-  /** A target is configured (area 19). */
+
   canSend?: boolean
 }
 
-// Command bar (redesign C4) — replaces the old `InputCard` row of buttons.
 export const CommandBar = forwardRef<HTMLInputElement, CommandBarProps>(function CommandBar(
   {
     commands,
@@ -51,7 +50,6 @@ export const CommandBar = forwardRef<HTMLInputElement, CommandBarProps>(function
     setInputValue('')
   }
 
-  // Chips always carry a border so they read as buttons against the dark bar; the active type additionally fills with its own accent...
   const barcodeChip =
     barType === 'barcode'
       ? 'border-type-barcode/50 bg-type-barcode/10 text-type-barcode'

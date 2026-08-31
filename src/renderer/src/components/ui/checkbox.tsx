@@ -4,7 +4,6 @@ import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-// Added for the Sync screen (S2), which is the app's first multi-select list.
 const Checkbox = React.forwardRef<
   React.ElementRef<typeof CheckboxPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>
@@ -15,8 +14,7 @@ const Checkbox = React.forwardRef<
       'peer flex h-[15px] w-[15px] flex-shrink-0 items-center justify-center rounded-[4px] border border-zinc-700 bg-surface-control transition-colors',
       'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-indigo focus-visible:ring-offset-0',
       'disabled:cursor-not-allowed disabled:opacity-50',
-      // `indeterminate` keeps the neutral border — it's a group summary, not a
-      // value the row itself carries.
+
       'data-[state=checked]:border-primary data-[state=checked]:bg-nav-active',
       'data-[state=indeterminate]:bg-nav-active',
       className

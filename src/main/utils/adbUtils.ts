@@ -1,7 +1,6 @@
 import { app } from 'electron'
 import path from 'path'
 
-/** The platform-tools binary shipped inside the app bundle. */
 export const getBundledAdbPath = (): string => {
   if (process.platform === 'win32') {
     return app.isPackaged
@@ -15,7 +14,6 @@ export const getBundledAdbPath = (): string => {
   return 'adb'
 }
 
-/** The adb to run. */
 export const getAdbPath = (override?: string): string => {
   const trimmed = override?.trim()
   return trimmed ? trimmed : getBundledAdbPath()

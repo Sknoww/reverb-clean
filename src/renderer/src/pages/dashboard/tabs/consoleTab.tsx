@@ -23,7 +23,6 @@ import { cn } from '@/lib/utils'
 import { ConsoleResult, useConsoleContext } from '../contexts/consoleContext'
 import { TARGET_MESSAGES, TargetNotice } from '../components/targetNotice'
 
-// VS-dark token palette, taken from design frame 4a.
 const vsDarkHighlight = HighlightStyle.define([
   { tag: [tags.keyword, tags.controlKeyword, tags.moduleKeyword, tags.self], color: '#c586c0' },
   {
@@ -47,7 +46,6 @@ const vsDarkHighlight = HighlightStyle.define([
   { tag: tags.invalid, color: '#fca5a5' }
 ])
 
-// Frame metrics from 4a: 44px gutter with a hairline rule, 14px/1.55 mono body, 132px minimum.
 const editorTheme = EditorView.theme(
   {
     '&': { backgroundColor: 'transparent', color: '#d4d4d8' },
@@ -81,7 +79,7 @@ const editorTheme = EditorView.theme(
 
 interface ConsoleTabProps {
   currentDeviceId: string
-  /** A script provider URI is configured (area 19). */
+
   canRun: boolean
 }
 
@@ -104,7 +102,6 @@ const MAX_RESULTS = 200
 const COLLAPSED_BODY_HEIGHT = 168
 const jsEngine = createJavaScriptRegexEngine()
 
-// Quiet labelled card action (open / copy / expand) — 4a draws these as glyph + label rather than the bare icon buttons the tables use,...
 function CardAction({
   icon,
   label,
@@ -143,7 +140,6 @@ function ResultCard({
   const [canExpand, setCanExpand] = useState(false)
   const bodyRef = useRef<HTMLDivElement | null>(null)
 
-  // `expand` only earns its slot when the body is actually clipped (4a shows it on the tall JSON card, not the one-line ones).
   useEffect(() => {
     if (expanded) return
     const el = bodyRef.current
@@ -230,7 +226,6 @@ function ResultCard({
           style={expanded ? undefined : { maxHeight: COLLAPSED_BODY_HEIGHT }}
         >
           {result.isJson && result.result ? (
-            // Shiki's generated <pre> ships the theme's own background and padding, which would draw a second box inside this one.
             <div className="code-ligatures overflow-x-auto rounded-lg border border-hairline bg-surface-chrome px-3.5 py-3 font-mono text-[13px] leading-relaxed [&_code]:!bg-transparent [&_pre]:!m-0 [&_pre]:!bg-transparent [&_pre]:!p-0">
               <ShikiHighlighter
                 language="json"
@@ -255,8 +250,6 @@ function ResultCard({
 const ResultCardMemo = memo(ResultCard)
 
 export function ConsoleTab({ currentDeviceId, canRun }: ConsoleTabProps) {
-  // Result/history/execution state lives in ConsoleContext so it survives
-  // navigation (real routes unmount this screen — redesign C1b / D1).
   const {
     results,
     setResults,
@@ -270,8 +263,6 @@ export function ConsoleTab({ currentDeviceId, canRun }: ConsoleTabProps) {
   } = useConsoleContext()
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
-  // The results themselves already survive navigation via the context above;
-  // this is the matching half — where in them you were reading.
   const resultsRef = useScrollMemory('console')
 
   const editorViewRef = useRef<EditorView | null>(null)
@@ -435,15 +426,11 @@ export function ConsoleTab({ currentDeviceId, canRun }: ConsoleTabProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Above the editor (19a) — the script you were writing is still worth
-          keeping, so this narrows what's off rather than replacing the screen. */}
       {!canRun && (
         <div className="pb-3">
           <TargetNotice message={TARGET_MESSAGES.scripts} />
         </div>
       )}
-
-      {/* Framed editor — gutter + VS-dark body, Run and the keymap hint overlaid top-right (4a). */}
       <div className="relative flex-shrink-0 overflow-hidden rounded-xl border border-border-bar bg-surface-editor">
         <CodeMirror
           placeholder="Enter a JavaScript expression..."
@@ -490,8 +477,6 @@ export function ConsoleTab({ currentDeviceId, canRun }: ConsoleTabProps) {
           </Button>
         </div>
       </div>
-
-      {/* Results */}
       <div className="flex min-h-0 flex-1 flex-col" aria-live="polite">
         {results.length > 0 && (
           <div className="flex flex-shrink-0 items-center justify-between px-0.5 pb-2.5 pt-4">

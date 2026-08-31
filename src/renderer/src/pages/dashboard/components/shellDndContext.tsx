@@ -18,14 +18,12 @@ import { createContext, ReactNode, useContext, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { LuGripVertical } from 'react-icons/lu'
 
-// Shell-level drag context (area 21).
 export type ShellDragData = { source: 'dock'; command: AdbCommand } | { source: 'flow-card' }
 
 function dragData(data: unknown): ShellDragData | undefined {
   return data as ShellDragData | undefined
 }
 
-// What's being dragged, published so a drop target can style itself only for the drag it actually accepts — a flow card highlights for a...
 interface ShellDragState {
   activeSource: ShellDragData['source'] | null
 }
@@ -36,7 +34,7 @@ export function useShellDrag() {
   return useContext(ShellDragContext)
 }
 
-// `closestCenter` compares centre-to-centre, which is wrong once droppables differ this much in size: a flow card is tall enough that its...
+// Pointer hits beat center distance when dock rows can be dropped on tall flow cards.
 const dockCollisionDetection: CollisionDetection = (args) => {
   const collisions = pointerWithin(args)
   return collisions.length > 0 ? collisions : closestCenter(args)
@@ -60,7 +58,6 @@ export function ShellDndProvider({
   const [activeSource, setActiveSource] = useState<ShellDragData['source'] | null>(null)
   const [activeCommand, setActiveCommand] = useState<AdbCommand | null>(null)
 
-  // 5px before a drag starts — the flow card's own list has used this since C5.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -84,8 +81,6 @@ export function ShellDndProvider({
     if (!over || active.id === over.id) return
 
     if (data?.source === 'dock') {
-      // A flow card is the only cross-boundary target; anything else a dock row
-      // can land on is another dock row, i.e. a reorder.
       const targetFlow = flows.find((flow) => flow.id === over.id)
       if (targetFlow) {
         onDropCommandOnFlow(targetFlow, data.command)
@@ -115,11 +110,10 @@ export function ShellDndProvider({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragCancel={clearActive}
-        // Modifiers are context-level, so they're picked per drag rather than set once: flow cards are a vertical list, while a dock row has to be...
         modifiers={activeSource === 'flow-card' ? [restrictToVerticalAxis] : undefined}
       >
         {children}
-        {/* A dock row lives inside an `overflow-y-auto` panel, so dragging it towards a flow card would clip it at the dock's edge. */}
+        {/* Portal the preview so the dock's scroll container cannot clip it. */}
         {createPortal(
           <DragOverlay dropAnimation={null}>
             {activeCommand ? (

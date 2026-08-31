@@ -9,6 +9,7 @@ import {
 } from 'electron'
 import logger from '../logger'
 import { decodeBarcodes, type DecodedBarcode } from './barcodeScanner'
+import { captureMacDisplays } from './macScreenshotCapture'
 
 export type ScreenScanProgress = 'capturing' | 'selecting' | 'decoding'
 
@@ -52,6 +53,7 @@ interface ScannerDependencies {
   getPermissionStatus: () => string
   decode: typeof decodeBarcodes
   delay: (milliseconds: number) => Promise<void>
+  captureMac: (displays: Display[]) => Promise<ScreenCaptureFrame[] | ScreenBarcodeScanResult>
 }
 
 const defaultDependencies: ScannerDependencies = {
@@ -60,7 +62,8 @@ const defaultDependencies: ScannerDependencies = {
   getSources: (options) => desktopCapturer.getSources(options),
   getPermissionStatus: () => systemPreferences.getMediaAccessStatus('screen'),
   decode: decodeBarcodes,
-  delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds))
+  delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+  captureMac: captureMacDisplays
 }
 
 let scanInFlight = false
@@ -78,13 +81,13 @@ const sourceForDisplay = (
 ): DesktopCapturerSource | undefined => {
   const matched = sources.find((source) => source.display_id === String(display.id))
   if (matched) return matched
-  // Fall back to source order only when Electron provides no display IDs at all.
+
   if (sources.every((source) => !source.display_id)) return sources[displayIndex]
   return undefined
 }
 
 export const captureDisplays = async (
-  dependencies: ScannerDependencies
+  dependencies: Pick<ScannerDependencies, 'getDisplays' | 'getSources'>
 ): Promise<ScreenCaptureFrame[] | ScreenBarcodeScanResult> => {
   const displays = dependencies.getDisplays()
   const frames: ScreenCaptureFrame[] = []
@@ -151,7 +154,6 @@ export const normalizeBarcodes = (barcodes: ScreenBarcode[]): ScreenBarcode[] =>
   })
 }
 
-/** Hide Reverb, capture every display at physical-pixel dimensions, restore it, then decode. */
 export const scanScreenBarcodes = async (
   window: BrowserWindow | CaptureWindow,
   onProgress: (progress: ScreenScanProgress) => void = () => undefined,
@@ -177,9 +179,12 @@ export const scanScreenBarcodes = async (
 
     try {
       window.hide()
-      // Let the compositor remove Reverb before asking for the first frame.
+
       await dependencies.delay(120)
-      const captured = await captureDisplays(dependencies)
+      const captured =
+        dependencies.platform === 'darwin'
+          ? await dependencies.captureMac(dependencies.getDisplays())
+          : await captureDisplays(dependencies)
       if (!Array.isArray(captured)) {
         if (dependencies.platform === 'darwin') {
           const permission = dependencies.getPermissionStatus()
@@ -238,7 +243,7 @@ export const scanScreenBarcodes = async (
     if (normalized.length === 1) return { status: 'found', barcode: normalized[0] }
     return { status: 'multiple', barcodes: normalized }
   } finally {
-    // Drop the only retained references to screenshot buffers after every outcome.
+    // Release screenshot buffers after every outcome.
     frames.length = 0
     scanInFlight = false
   }
