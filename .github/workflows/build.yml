@@ -53,6 +53,9 @@ jobs:
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v8
+        with:
+          name: macos-artifacts
+          path: macos-artifacts
       - name: List downloaded files
         run: find . -type f | sort
       - name: Create Release
