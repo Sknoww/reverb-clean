@@ -57,7 +57,6 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "electron-router-dom": "^2.1.0",
-    "electron-updater": "^6.1.7",
     "lucide-react": "^0.456.0",
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.5.0",
@@ -117,7 +116,6 @@
       "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}",
       "!**/*.tsbuildinfo",
       "!{electron.vite.config.ts,eslint.config.mjs,postcss.config.js,tailwind.config.js}",
-      "!components.json",
       "!package-lock.json",
       "!node_modules/zxing-wasm/dist/es/**",
       "!node_modules/zxing-wasm/dist/iife/**",
@@ -125,9 +123,7 @@
       "!node_modules/zxing-wasm/dist/cjs/writer/**",
       "!node_modules/zxing-wasm/dist/full/**",
       "!node_modules/zxing-wasm/dist/writer/**",
-      "!*.md",
-      "!{sampleCommonCommands.json,sampleProject.json}",
-      "!dev-app-update.yml"
+      "!*.md"
     ],
     "asarUnpack": [
       "resources/**"
