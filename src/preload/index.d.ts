@@ -28,7 +28,7 @@ declare global {
       saveProject: (project: Project) => Promise<void>
       getProject: (projectId: string) => Promise<Project | null>
       getAllProjects: () => Promise<Project[]>
-      deleteProject: (projectId: string) => Promise<boolean>
+      deleteProject: (filename: string) => Promise<string | null>
       duplicateProject: (
         sourceFilename: string,
         newName: string,

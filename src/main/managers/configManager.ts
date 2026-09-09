@@ -723,6 +723,27 @@ export const updateRecentProjectIds = async (
   if (!success) logger.error('Failed to update most recent project IDs')
 }
 
+// Drops a deleted project from both recents, inside the lock, and reports which project
+// should be opened in its place ('' when none is left).
+export const forgetProject = async (filename: string): Promise<string> => {
+  let nextProjectId = ''
+
+  const success = await queueUpdate((current) => {
+    const mostRecentProjectIds = current.mostRecentProjectIds.filter((id) => id !== filename)
+
+    const recentProjectId =
+      current.recentProjectId === filename
+        ? (mostRecentProjectIds.pop() ?? '')
+        : current.recentProjectId
+
+    nextProjectId = recentProjectId
+    return { ...current, recentProjectId, mostRecentProjectIds }
+  })
+
+  if (!success) logger.error('Failed to forget deleted project:', filename)
+  return nextProjectId
+}
+
 export const updateCommonCommands = async (commands: AdbCommand[]): Promise<void> => {
   const success = await queueUpdate((current) => ({ ...current, commonCommands: commands }))
   if (!success) logger.error('Failed to update common commands')

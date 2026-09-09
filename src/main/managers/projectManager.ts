@@ -1,4 +1,4 @@
-import { app } from 'electron'
+import { app, shell } from 'electron'
 import fs from 'fs'
 import path from 'path'
 import logger from '../logger'
@@ -265,9 +265,11 @@ export const duplicateProject = (
   return duplicate
 }
 
-export const deleteProject = (projectId: string): boolean => {
-  logger.info('Deleting project:', projectId)
-  const filePath = path.join(projectsDir, `${projectId}.project.json`)
+// Trashes rather than unlinks: projects are not covered by config snapshots or any
+// other backup, so the OS trash is the only undo a delete can offer.
+export const deleteProject = async (filename: string): Promise<boolean> => {
+  logger.info('Deleting project:', filename)
+  const filePath = path.join(projectsDir, filename)
 
   if (!fs.existsSync(filePath)) {
     logger.warn('Project file does not exist, cannot delete:', filePath)
@@ -275,11 +277,11 @@ export const deleteProject = (projectId: string): boolean => {
   }
 
   try {
-    fs.unlinkSync(filePath)
-    logger.info('Successfully deleted project:', filePath)
+    await shell.trashItem(filePath)
+    logger.info('Moved project to trash:', filePath)
     return true
   } catch (error) {
-    logger.error('Failed to delete project file:', error)
+    logger.error('Failed to trash project file:', error)
     return false
   }
 }

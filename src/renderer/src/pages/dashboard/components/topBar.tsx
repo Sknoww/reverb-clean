@@ -14,7 +14,6 @@ import { LuTrash2 } from 'react-icons/lu'
 import { useLocation } from 'react-router-dom'
 import { useSyncContext } from '../contexts/syncContext'
 import { ConfirmModal } from './confirmModal'
-import { ContextMenu } from './contextMenu'
 import { DeviceSelector } from './deviceSelector'
 import { ProjectMenu } from './projectSelect'
 import { SyncProfileMenu } from './syncProfileMenu'
@@ -122,6 +121,7 @@ export function TopBar({
               currentProject={project}
               projects={projects}
               currentFile={config.recentProjectId}
+              onOpenProjectFile={onOpenProjectFile}
             />
             <button
               type="button"
@@ -214,8 +214,6 @@ export function TopBar({
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-
-            <ContextMenu onOpenProjectFile={onOpenProjectFile} hasProject={!!project} />
           </>
         )}
       </div>
