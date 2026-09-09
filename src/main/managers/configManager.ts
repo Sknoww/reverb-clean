@@ -25,6 +25,21 @@ const snapshotsDir = path.join(app.getPath('userData'), 'config-snapshots')
 
 const DEFAULT_MAX_SNAPSHOTS = 5
 
+const RECENT_PROJECT_LIMIT = 5
+
+// Most recent is last, so a repeated id keeps its latest position rather than its first.
+export const dedupeRecentProjectIds = (ids: string[]): string[] =>
+  ids.filter((id, index) => id !== '' && ids.lastIndexOf(id) === index)
+
+export const nextRecentProjectIds = (
+  current: string[],
+  previousProjectId: string,
+  newProjectId: string
+): string[] =>
+  dedupeRecentProjectIds([...current, previousProjectId])
+    .filter((id) => id !== newProjectId)
+    .slice(-RECENT_PROJECT_LIMIT)
+
 const defaultSyncConfig: SyncConfig = {
   sourceFile: '',
   targetFile: '',
@@ -375,7 +390,9 @@ const validateAndFillConfig = (config: any): Config => {
         ? config.recentProjectId
         : defaultConfig.recentProjectId,
     mostRecentProjectIds: Array.isArray(config.mostRecentProjectIds)
-      ? config.mostRecentProjectIds.filter((id: any) => typeof id === 'string')
+      ? dedupeRecentProjectIds(
+          config.mostRecentProjectIds.filter((id: any) => typeof id === 'string')
+        )
       : defaultConfig.mostRecentProjectIds,
     commonCommands: Array.isArray(config.commonCommands)
       ? config.commonCommands
@@ -711,14 +728,14 @@ export const updateRecentProjectIds = async (
   previousProjectId: string,
   newProjectId: string
 ): Promise<void> => {
-  const success = await queueUpdate((current) => {
-    const mostRecentProjectIds = current.mostRecentProjectIds
-      .filter((projectId) => projectId !== newProjectId)
-      .concat(previousProjectId)
-      .slice(-5)
-
-    return { ...current, mostRecentProjectIds }
-  })
+  const success = await queueUpdate((current) => ({
+    ...current,
+    mostRecentProjectIds: nextRecentProjectIds(
+      current.mostRecentProjectIds,
+      previousProjectId,
+      newProjectId
+    )
+  }))
 
   if (!success) logger.error('Failed to update most recent project IDs')
 }
