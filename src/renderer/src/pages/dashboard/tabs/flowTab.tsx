@@ -2,11 +2,14 @@ import { useScrollMemory } from '@/lib/hooks/use-scroll-memory'
 import { useSessionState } from '@/lib/hooks/use-session-state'
 import { AdbCommand, Flow, Project } from '@/types'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { LuChevronsDownUp, LuChevronsUpDown } from 'react-icons/lu'
+import { LuChevronsDownUp, LuChevronsUpDown, LuPlus } from 'react-icons/lu'
 import { FlowCard } from '../components/flowCard'
 import { TARGET_MESSAGES, TargetNotice } from '../components/targetNotice'
 
 const NONE_COLLAPSED: ReadonlySet<string> = new Set()
+
+const NEW_FLOW_BUTTON =
+  'flex h-7 items-center gap-1.5 rounded-md bg-primary px-2.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90'
 
 interface FlowTabProps {
   project: Project | null
@@ -14,11 +17,13 @@ interface FlowTabProps {
   handleShowDeleteModal: (flow: Flow) => void
   handleSendFlow: (flow: Flow) => void
   handleSendFlowCommand: (command: AdbCommand) => void
+  handleRescanFlowCommand: (flow: Flow, command: AdbCommand) => void
   handleAddCommandToFlow: (flow: Flow) => void
   handleCopyFlowCommand: (flow: Flow, command: AdbCommand) => void
   handleEditFlowCommand: (flow: Flow, command: AdbCommand) => void
   handleDeleteFlowCommand: (flow: Flow, command: AdbCommand) => void
   handleReorderFlowCommands: (flow: Flow, commands: AdbCommand[]) => void
+  handleNewFlow: () => void
 
   canSend: boolean
 }
@@ -29,11 +34,13 @@ export function FlowTab({
   handleShowDeleteModal,
   handleSendFlow,
   handleSendFlowCommand,
+  handleRescanFlowCommand,
   handleAddCommandToFlow,
   handleCopyFlowCommand,
   handleEditFlowCommand,
   handleDeleteFlowCommand,
   handleReorderFlowCommands,
+  handleNewFlow,
   canSend
 }: FlowTabProps) {
   const listRef = useScrollMemory('flows')
@@ -70,14 +77,15 @@ export function FlowTab({
   if (project.flows.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center px-1">
-        <div className="max-w-sm space-y-3 text-center">
+        <div className="flex max-w-sm flex-col items-center gap-3 text-center">
           <h3 className="text-lg font-medium">No Flows Yet</h3>
           <p className="text-sm text-muted-foreground">
             A flow runs a sequence of commands in order, with a delay between each.
           </p>
-          <p className="text-xs text-muted-foreground">
-            Use <span className="text-foreground">New Flow</span> in the top bar to create one.
-          </p>
+          <button type="button" onClick={handleNewFlow} className={NEW_FLOW_BUTTON}>
+            <LuPlus size={13} />
+            New flow
+          </button>
         </div>
       </div>
     )
@@ -109,6 +117,15 @@ export function FlowTab({
           {allCollapsed ? <LuChevronsUpDown size={13} /> : <LuChevronsDownUp size={13} />}
           {allCollapsed ? 'Expand all' : 'Collapse all'}
         </button>
+        <button
+          type="button"
+          onClick={handleNewFlow}
+          title="Create a new flow"
+          className={NEW_FLOW_BUTTON}
+        >
+          <LuPlus size={13} />
+          New flow
+        </button>
       </div>
 
       <div
@@ -134,6 +151,7 @@ export function FlowTab({
                 onDeleteCommand={handleDeleteFlowCommand}
                 onReorderCommands={handleReorderFlowCommands}
                 onSendCommand={handleSendFlowCommand}
+                onRescanCommand={(command) => handleRescanFlowCommand(flow, command)}
                 canSend={canSend}
                 collapsed={collapsedIds.has(flow.id)}
                 onToggleCollapse={toggleCollapsed}

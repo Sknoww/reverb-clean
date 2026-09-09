@@ -12,6 +12,7 @@ interface CommandTabProps {
   handleEditCommand: (command: AdbCommand | null, isCommon: boolean) => void
   handleShowDeleteModal: (command: AdbCommand) => void
   handleSendCommand: (command: AdbCommand) => void
+  handleRescanCommand: (command: AdbCommand) => void
   handleReorderCommands: (commands: AdbCommand[]) => void
 
   canSend: boolean
@@ -23,6 +24,7 @@ export function CommandTab({
   handleEditCommand,
   handleShowDeleteModal,
   handleSendCommand,
+  handleRescanCommand,
   handleReorderCommands,
   canSend
 }: CommandTabProps) {
@@ -133,6 +135,7 @@ export function CommandTab({
           handleEditCommand={handleEditCommand}
           handleShowDeleteModal={handleShowDeleteModal}
           handleSendCommand={handleSendCommand}
+          handleRescanCommand={handleRescanCommand}
           handleReorderCommands={handleReorderCommands}
           canSend={canSend}
         />

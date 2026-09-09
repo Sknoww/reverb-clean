@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import { Config, Project } from '@/types'
-import { ChevronDown, ListChecks, Plus, RefreshCw, RotateCcw } from 'lucide-react'
+import { ChevronDown, ListChecks, RefreshCw, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
 import { LuTrash2 } from 'react-icons/lu'
 import { useLocation } from 'react-router-dom'
@@ -32,7 +32,6 @@ interface TopBarProps {
   projects: Project[]
   config: Config
   onRefreshProject: () => void
-  onNewFlow: () => void
   onResetClient: () => void
   onClearStorage: () => void
   onRunProvision: () => void
@@ -48,7 +47,6 @@ export function TopBar({
   projects,
   config,
   onRefreshProject,
-  onNewFlow,
   onResetClient,
   onClearStorage,
   onRunProvision,
@@ -59,7 +57,6 @@ export function TopBar({
   const [confirmClear, setConfirmClear] = useState(false)
   const { pathname } = useLocation()
   const screen = SCREENS[pathname] ?? SCREENS['/']
-  const isFlowsRoute = pathname === '/flows'
   const isSyncRoute = pathname === '/sync'
 
   const isClientRoute = !isSyncRoute && pathname !== '/settings'
@@ -140,17 +137,6 @@ export function TopBar({
         )}
       </div>
       <div className="flex flex-shrink-0 items-center gap-2.5">
-        {isFlowsRoute && (
-          <Button
-            onClick={onNewFlow}
-            disabled={!project}
-            title={!project ? 'Select or create a project first' : 'Create a new flow'}
-            className="h-[34px] gap-1.5 rounded-[9px] px-3.5 text-[13px]"
-          >
-            <Plus className="h-4 w-4" />
-            New flow
-          </Button>
-        )}
         <DeviceSelector />
 
         {isClientRoute && (

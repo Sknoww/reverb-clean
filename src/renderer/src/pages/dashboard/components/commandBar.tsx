@@ -1,7 +1,7 @@
 import { COMMAND_BAR_KEY } from '@/constants/shortcuts'
 import { AdbCommand } from '@/types'
 import { forwardRef, useState } from 'react'
-import { LuPlus } from 'react-icons/lu'
+import { LuPlay, LuPlus } from 'react-icons/lu'
 import { v4 as uuid } from 'uuid'
 
 export type CommandBarType = 'barcode' | 'speech'
@@ -122,6 +122,23 @@ export const CommandBar = forwardRef<HTMLInputElement, CommandBarProps>(function
       >
         <LuPlus size={13} />
         Save
+      </button>
+
+      <button
+        type="button"
+        onClick={run}
+        disabled={!canSend || !inputValue.trim()}
+        title={
+          !canSend
+            ? 'No target configured — see Settings → Target'
+            : !inputValue.trim()
+              ? 'Type a value or keyword to run'
+              : `Run as ${barType} — or press Enter`
+        }
+        className="flex h-7 flex-shrink-0 items-center gap-1.5 rounded-md bg-primary px-2.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        <LuPlay size={13} />
+        Run
       </button>
     </div>
   )

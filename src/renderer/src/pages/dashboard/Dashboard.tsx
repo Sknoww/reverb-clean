@@ -37,6 +37,8 @@ export interface ShellContext {
 
   handleShowDeleteCommonCommand: (command: AdbCommand) => void
   handleReorderCommonCommands: (commands: AdbCommand[]) => void
+  handleRescanCommand: (command: AdbCommand, target: RescanTarget) => Promise<void>
+  handleNewFlow: () => void
   handleEditFlow: (flow: Flow) => void
   handleShowDeleteFlow: (flow: Flow) => void
   handleSendFlow: (flow: Flow) => void
@@ -50,6 +52,11 @@ export interface ShellContext {
 export function useShellContext() {
   return useOutletContext<ShellContext>()
 }
+
+export type RescanTarget =
+  | { kind: 'project' }
+  | { kind: 'common' }
+  | { kind: 'flow'; flowId: string }
 
 type ModalState =
   | null
@@ -272,6 +279,87 @@ function ShellLayout() {
     window.projectAPI.saveProject(updatedProject)
   }
 
+  const rescanFailure: Record<string, string> = {
+    'not-found': 'no barcode found',
+    'permission-denied': 'screen recording blocked — Settings → Permissions',
+    busy: 'a scan is already running',
+    'decoder-failed': 'the capture could not be decoded',
+    'capture-failed': 'the screen could not be captured'
+  }
+
+  const writeScannedValue = (target: RescanTarget, command: AdbCommand, value: string) => {
+    if (target.kind === 'common') {
+      const updated = config.commonCommands.map((c) =>
+        c.keyword === command.keyword ? { ...c, value } : c
+      )
+      setConfig((prev) => ({ ...prev, commonCommands: updated }))
+      void window.configAPI.updateCommonCommands(updated)
+      return
+    }
+
+    setProject((prev) => {
+      if (!prev) return prev
+      const updated =
+        target.kind === 'flow'
+          ? {
+              ...prev,
+              flows: prev.flows.map((f) =>
+                f.id !== target.flowId
+                  ? f
+                  : {
+                      ...f,
+                      commands: f.commands.map((c) => (c.id === command.id ? { ...c, value } : c))
+                    }
+              )
+            }
+          : {
+              ...prev,
+              commands: prev.commands.map((c) =>
+                c.keyword === command.keyword ? { ...c, value } : c
+              )
+            }
+      void window.projectAPI.saveProject(updated)
+      return updated
+    })
+  }
+
+  const handleRescanCommand = async (command: AdbCommand, target: RescanTarget) => {
+    if (command.type !== 'barcode') return
+    const label = command.name || command.keyword
+    const mode = config.behavior?.quickScanMode ?? 'region'
+
+    try {
+      let result = await (mode === 'screens'
+        ? window.barcodeAPI.scanScreens()
+        : window.barcodeAPI.selectRegion())
+
+      // A whole-screen scan can't choose between codes, so an ambiguous one escalates to region.
+      if (result.status === 'multiple') result = await window.barcodeAPI.selectRegion()
+
+      if (result.status === 'cancelled') {
+        setLastRun({ label: 'scan cancelled', tone: 'note' })
+        return
+      }
+      if (result.status !== 'found') {
+        setLastRun({ label: rescanFailure[result.status] ?? 'scan failed', tone: 'fail' })
+        return
+      }
+
+      const previous = command.value
+      writeScannedValue(target, command, result.barcode.text)
+      setLastRun({
+        label: `rescanned ${label}`,
+        tone: 'ok',
+        undo: () => {
+          writeScannedValue(target, command, previous)
+          setLastRun({ label: `restored ${label}`, tone: 'ok' })
+        }
+      })
+    } catch {
+      setLastRun({ label: 'scan failed', tone: 'fail' })
+    }
+  }
+
   const handleSendCommand = useCallback(async (command: AdbCommand) => {
     const startedAt = performance.now()
     const label = command.name || command.keyword
@@ -280,11 +368,11 @@ function ShellLayout() {
       setLastRun({
         label,
         ms: Math.round(performance.now() - startedAt),
-        ok: result?.success !== false
+        tone: result?.success !== false ? 'ok' : 'fail'
       })
       return result
     } catch (error) {
-      setLastRun({ label, ms: Math.round(performance.now() - startedAt), ok: false })
+      setLastRun({ label, ms: Math.round(performance.now() - startedAt), tone: 'fail' })
       throw error
     }
   }, [])
@@ -505,11 +593,11 @@ function ShellLayout() {
         setLastRun({
           label,
           ms: Math.round(performance.now() - startedAt),
-          ok: result?.success !== false
+          tone: result?.success !== false ? 'ok' : 'fail'
         })
         return result
       } catch {
-        setLastRun({ label, ms: Math.round(performance.now() - startedAt), ok: false })
+        setLastRun({ label, ms: Math.round(performance.now() - startedAt), tone: 'fail' })
         return null
       } finally {
         setProvisionProgress(null)
@@ -569,6 +657,8 @@ function ShellLayout() {
     handleReorderCommands,
     handleShowDeleteCommonCommand: handleShowDeleteCommonModal,
     handleReorderCommonCommands,
+    handleRescanCommand,
+    handleNewFlow: handleShowFlowModal,
     handleEditFlow,
     handleShowDeleteFlow: handleShowDeleteFlowModal,
     handleSendFlow,
@@ -597,7 +687,6 @@ function ShellLayout() {
       projects={projects}
       config={config}
       onRefreshProject={handleRefreshProject}
-      onNewFlow={handleShowFlowModal}
       onResetClient={handleResetClient}
       onClearStorage={handleClearStorage}
       onRunProvision={handleRunProvision}
@@ -616,6 +705,7 @@ function ShellLayout() {
       handleEditCommand={handleEditCommand}
       handleShowDeleteModal={handleShowDeleteCommonModal}
       handleSendCommand={handleSendCommand}
+      handleRescanCommand={(cmd) => handleRescanCommand(cmd, { kind: 'common' })}
       canSend={target.commands}
     />
   )
@@ -708,6 +798,7 @@ export function CommandScreen() {
       handleEditCommand={s.handleEditCommand}
       handleShowDeleteModal={s.handleShowDeleteCommand}
       handleSendCommand={s.handleSendCommand}
+      handleRescanCommand={(cmd) => void s.handleRescanCommand(cmd, { kind: 'project' })}
       handleReorderCommands={s.handleReorderCommands}
       canSend={s.target.commands}
     />
@@ -723,11 +814,15 @@ export function FlowScreen() {
       handleShowDeleteModal={s.handleShowDeleteFlow}
       handleSendFlow={s.handleSendFlow}
       handleSendFlowCommand={s.handleSendCommand}
+      handleRescanFlowCommand={(flow, cmd) =>
+        void s.handleRescanCommand(cmd, { kind: 'flow', flowId: flow.id })
+      }
       handleAddCommandToFlow={s.handleAddCommandToFlow}
       handleEditFlowCommand={s.handleEditFlowCommand}
       handleDeleteFlowCommand={s.handleDeleteFlowCommand}
       handleCopyFlowCommand={s.handleCopyFlowCommand}
       handleReorderFlowCommands={s.handleReorderFlowCommands}
+      handleNewFlow={s.handleNewFlow}
       canSend={s.target.commands}
     />
   )

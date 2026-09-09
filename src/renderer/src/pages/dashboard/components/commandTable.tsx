@@ -19,11 +19,11 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useEffect, useState } from 'react'
-import { LuCheck, LuGripVertical, LuPencil, LuPlay, LuTrash2 } from 'react-icons/lu'
+import { LuCheck, LuGripVertical, LuPencil, LuPlay, LuScanLine, LuTrash2 } from 'react-icons/lu'
 
 export type CommandTypeFilter = 'all' | 'barcode' | 'speech'
 
-const GRID = '26px 96px 190px 130px 1fr 160px 96px'
+const GRID = '26px 96px 190px 130px 1fr 160px 124px'
 
 interface CommandTableProps {
   commands: AdbCommand[] | undefined
@@ -31,6 +31,7 @@ interface CommandTableProps {
   handleEditCommand: (command: AdbCommand | null, isCommon: boolean) => void
   handleShowDeleteModal: (command: AdbCommand) => void
   handleSendCommand: (command: AdbCommand) => void
+  handleRescanCommand: (command: AdbCommand) => void
   handleReorderCommands: (commands: AdbCommand[]) => void
 
   canSend: boolean
@@ -39,6 +40,28 @@ interface CommandTableProps {
 function withIds(commands: AdbCommand[] | undefined): AdbCommand[] {
   return (commands ?? []).map((command, index) =>
     command.id ? command : { ...command, id: `command-${command.keyword}-${index}` }
+  )
+}
+
+export function RescanButton({
+  command,
+  onRescan
+}: {
+  command: AdbCommand
+  onRescan: (command: AdbCommand) => void
+}) {
+  if (command.type !== 'barcode') return <span className="h-7 w-7" aria-hidden />
+
+  return (
+    <button
+      type="button"
+      onClick={() => onRescan(command)}
+      className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-row-hover hover:text-foreground"
+      aria-label="Rescan barcode value"
+      title="Scan a barcode into this command's value"
+    >
+      <LuScanLine size={16} />
+    </button>
   )
 }
 
@@ -52,12 +75,14 @@ function SortableCommandRow({
   onEdit,
   onDelete,
   onSend,
+  onRescan,
   canSend
 }: {
   command: AdbCommand
   onEdit: (command: AdbCommand) => void
   onDelete: (command: AdbCommand) => void
   onSend: (command: AdbCommand) => void
+  onRescan: (command: AdbCommand) => void
   canSend: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -118,6 +143,7 @@ function SortableCommandRow({
       </span>
 
       <span className="flex items-center justify-end gap-0.5">
+        <RescanButton command={command} onRescan={onRescan} />
         <button
           type="button"
           onClick={() => onDelete(command)}
@@ -166,6 +192,7 @@ export function CommandTable({
   handleEditCommand,
   handleShowDeleteModal,
   handleSendCommand,
+  handleRescanCommand,
   handleReorderCommands,
   canSend
 }: CommandTableProps) {
@@ -229,6 +256,7 @@ export function CommandTable({
                 onEdit={(cmd) => handleEditCommand(cmd, false)}
                 onDelete={handleShowDeleteModal}
                 onSend={handleSendCommand}
+                onRescan={handleRescanCommand}
                 canSend={canSend}
               />
             ))}

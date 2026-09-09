@@ -9,6 +9,7 @@ import {
 import { useFlash } from '@/lib/hooks/use-flash'
 import { useScrollMemory } from '@/lib/hooks/use-scroll-memory'
 import { AdbCommand } from '@/types'
+import { RescanButton } from './commandTable'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
@@ -29,6 +30,7 @@ interface CommandDockProps {
   handleEditCommand: (command: AdbCommand | null, isCommon: boolean) => void
   handleShowDeleteModal: (command: AdbCommand) => void
   handleSendCommand: (command: AdbCommand) => void
+  handleRescanCommand: (command: AdbCommand) => void
 
   canSend: boolean
 }
@@ -38,12 +40,14 @@ function DockRow({
   onEdit,
   onDelete,
   onSend,
+  onRescan,
   canSend
 }: {
   command: AdbCommand
   onEdit: (command: AdbCommand) => void
   onDelete: (command: AdbCommand) => void
   onSend: (command: AdbCommand) => void
+  onRescan: (command: AdbCommand) => void
   canSend: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -86,6 +90,8 @@ function DockRow({
       </span>
 
       <span className="flex flex-shrink-0 items-center gap-0.5">
+        <RescanButton command={command} onRescan={onRescan} />
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -141,6 +147,7 @@ export function CommandDock({
   handleEditCommand,
   handleShowDeleteModal,
   handleSendCommand,
+  handleRescanCommand,
   canSend
 }: CommandDockProps) {
   const bodyRef = useScrollMemory('dock')
@@ -227,6 +234,7 @@ export function CommandDock({
                   onEdit={(c) => handleEditCommand(c, true)}
                   onDelete={handleShowDeleteModal}
                   onSend={handleSendCommand}
+                  onRescan={handleRescanCommand}
                   canSend={canSend}
                 />
               ))}
