@@ -92,8 +92,7 @@ export function ProjectMenu({
     setDuplicateModalOpen(false)
   }
 
-  // Main trashes the file and prunes the recents, then reports what to open in its place;
-  // reloading picks that up rather than re-deriving the selection here.
+  // Main owns the selection move, so reloading picks it up rather than re-deriving it here.
   const handleDeleteProject = async () => {
     setConfirmDelete(false)
     if (!currentFile) return

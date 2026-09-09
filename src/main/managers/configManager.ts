@@ -723,8 +723,7 @@ export const updateRecentProjectIds = async (
   if (!success) logger.error('Failed to update most recent project IDs')
 }
 
-// Drops a deleted project from both recents, inside the lock, and reports which project
-// should be opened in its place ('' when none is left).
+// Returns the project to open in place of the deleted one, '' when none is left.
 export const forgetProject = async (filename: string): Promise<string> => {
   let nextProjectId = ''
 
