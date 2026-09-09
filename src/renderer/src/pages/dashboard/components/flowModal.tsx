@@ -18,6 +18,14 @@ import {
   ModalHeader
 } from './modalShell'
 
+export type FlowModalMode = 'new' | 'edit' | 'duplicate'
+
+const MODE_COPY: Record<FlowModalMode, { heading: string; submit: string }> = {
+  new: { heading: 'New', submit: 'Create' },
+  edit: { heading: 'Edit', submit: 'Save changes' },
+  duplicate: { heading: 'Duplicate', submit: 'Duplicate' }
+}
+
 interface FlowModalProps {
   isOpen: boolean
   onClose: () => void
@@ -25,6 +33,8 @@ interface FlowModalProps {
   onSave: (flow: Flow, isNewFlow: boolean) => void
   title?: string
   error?: boolean
+
+  mode?: FlowModalMode
 
   defaultDelay: number
 }
@@ -36,8 +46,11 @@ export function FlowModal({
   onSave,
   title = 'flow',
   error,
+  mode,
   defaultDelay
 }: FlowModalProps) {
+  const resolvedMode: FlowModalMode = mode ?? (flow ? 'edit' : 'new')
+  const copy = MODE_COPY[resolvedMode]
   const makeDefaultFlow = (): Flow => ({
     id: uuid(),
     name: '',
@@ -51,7 +64,7 @@ export function FlowModal({
   const [delayText, setDelayText] = useState(String(defaultDelay))
 
   const [nameEdited, setNameEdited] = useState(false)
-  const isNewflow = !flow
+  const isNewflow = resolvedMode !== 'edit'
 
   useEffect(() => {
     const next = flow ?? makeDefaultFlow()
@@ -88,11 +101,11 @@ export function FlowModal({
         <form onSubmit={handleSubmit} className={MODAL_FORM}>
           <ModalHeader
             marker={<LuArrowRightLeft size={14} className="text-accent-indigo" aria-hidden />}
-            title={`${isNewflow ? 'New' : 'Edit'} ${title}`}
+            title={`${copy.heading} ${title}`}
             onClose={onClose}
           />
           <DialogDescription className="sr-only">
-            {isNewflow ? 'Enter flow details' : 'Edit flow details'}
+            {resolvedMode === 'edit' ? 'Edit flow details' : 'Enter flow details'}
           </DialogDescription>
 
           <ModalBody>
@@ -143,7 +156,7 @@ export function FlowModal({
               />
             </Field>
 
-            {isNewflow && (
+            {resolvedMode === 'new' && (
               <div className="flex items-center gap-2 rounded-[9px] border border-hairline bg-surface-panel px-3 py-2.5 text-xs text-glyph-dim">
                 <LuInfo size={13} className="flex-shrink-0 text-accent-indigo" aria-hidden />
                 Add commands to this flow from the flow card after creating it.
@@ -151,7 +164,7 @@ export function FlowModal({
             )}
           </ModalBody>
 
-          <ModalFooter onCancel={onClose} submitLabel={isNewflow ? 'Create' : 'Save changes'} />
+          <ModalFooter onCancel={onClose} submitLabel={copy.submit} />
         </form>
       </DialogContent>
     </Dialog>
