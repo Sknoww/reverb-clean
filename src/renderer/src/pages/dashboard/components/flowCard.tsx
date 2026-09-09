@@ -24,6 +24,7 @@ import { useEffect, useState } from 'react'
 import {
   LuChevronDown,
   LuChevronRight,
+  LuCopy,
   LuGripVertical,
   LuPencil,
   LuPlay,
@@ -39,6 +40,7 @@ interface FlowCardProps {
   flow: Flow
   onDeleteFlow: (flow: Flow) => void
   onEditFlow: (flow: Flow) => void
+  onDuplicateFlow: (flow: Flow) => void
   onRunFlow: (flow: Flow) => void
   onAddCommand: (flow: Flow) => void
   onCopyCommand: (flow: Flow, command: AdbCommand) => void
@@ -60,6 +62,7 @@ export function FlowCard({
   flow,
   onDeleteFlow,
   onEditFlow,
+  onDuplicateFlow,
   onAddCommand,
   onCopyCommand,
   onRunFlow,
@@ -195,6 +198,15 @@ export function FlowCard({
               title="Edit flow"
             >
               <LuPencil size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDuplicateFlow(localFlow)}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-row-hover hover:text-foreground"
+              aria-label="Duplicate flow"
+              title="Duplicate flow"
+            >
+              <LuCopy size={15} />
             </button>
             <button
               type="button"

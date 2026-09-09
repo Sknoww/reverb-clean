@@ -7,7 +7,7 @@ import { v4 as uuid } from 'uuid'
 import { CommandModal } from './components/commandModal'
 import { CommandDock } from './components/commandDock'
 import { DeleteModal } from './components/deleteModal'
-import { FlowModal } from './components/flowModal'
+import { FlowModal, FlowModalMode } from './components/flowModal'
 import { ProvisionResultModal } from './components/provisionResultModal'
 import { ShellDndProvider } from './components/shellDndContext'
 import { TargetCapabilities, targetCapabilities } from './components/targetNotice'
@@ -40,6 +40,7 @@ export interface ShellContext {
   handleRescanCommand: (command: AdbCommand, target: RescanTarget) => Promise<void>
   handleNewFlow: () => void
   handleEditFlow: (flow: Flow) => void
+  handleDuplicateFlow: (flow: Flow) => void
   handleShowDeleteFlow: (flow: Flow) => void
   handleSendFlow: (flow: Flow) => void
   handleAddCommandToFlow: (flow: Flow) => void
@@ -63,7 +64,7 @@ type ModalState =
   | { modal: 'command'; command: AdbCommand; isCommon: boolean; isEditing: boolean }
   | { modal: 'command-flow'; command: AdbCommand; flow: Flow; isEditing: boolean }
   | { modal: 'delete'; title: string; message: string; onConfirm: () => void }
-  | { modal: 'flow'; flow: Flow | null }
+  | { modal: 'flow'; flow: Flow | null; mode: FlowModalMode }
 
 function ShellLayout() {
   const {
@@ -403,11 +404,26 @@ function ShellLayout() {
   }
 
   const handleShowFlowModal = () => {
-    setModalState({ modal: 'flow', flow: null })
+    setModalState({ modal: 'flow', flow: null, mode: 'new' })
   }
 
   const handleEditFlow = useCallback((flow: Flow) => {
-    setModalState({ modal: 'flow', flow })
+    setModalState({ modal: 'flow', flow, mode: 'edit' })
+  }, [])
+
+  // The copy carries fresh ids throughout: a duplicate that shared command ids with its
+  // source would make the two flows indistinguishable to every id-keyed surface.
+  const handleDuplicateFlow = useCallback((flow: Flow) => {
+    setModalState({
+      modal: 'flow',
+      mode: 'duplicate',
+      flow: {
+        ...flow,
+        id: uuid(),
+        name: `Copy of ${flow.name}`,
+        commands: flow.commands.map((command) => ({ ...command, id: uuid() }))
+      }
+    })
   }, [])
 
   const handleShowDeleteFlowModal = useCallback(
@@ -660,6 +676,7 @@ function ShellLayout() {
     handleRescanCommand,
     handleNewFlow: handleShowFlowModal,
     handleEditFlow,
+    handleDuplicateFlow,
     handleShowDeleteFlow: handleShowDeleteFlowModal,
     handleSendFlow,
     handleAddCommandToFlow,
@@ -779,6 +796,7 @@ function ShellLayout() {
           isOpen={true}
           onClose={closeModal}
           flow={modalState.flow}
+          mode={modalState.mode}
           onSave={handleSaveFlow}
           title="flow"
           error={validationError}
@@ -811,6 +829,7 @@ export function FlowScreen() {
     <FlowTab
       project={s.project}
       handleEditFlow={s.handleEditFlow}
+      handleDuplicateFlow={s.handleDuplicateFlow}
       handleShowDeleteModal={s.handleShowDeleteFlow}
       handleSendFlow={s.handleSendFlow}
       handleSendFlowCommand={s.handleSendCommand}

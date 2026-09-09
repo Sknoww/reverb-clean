@@ -14,6 +14,7 @@ const NEW_FLOW_BUTTON =
 interface FlowTabProps {
   project: Project | null
   handleEditFlow: (flow: Flow) => void
+  handleDuplicateFlow: (flow: Flow) => void
   handleShowDeleteModal: (flow: Flow) => void
   handleSendFlow: (flow: Flow) => void
   handleSendFlowCommand: (command: AdbCommand) => void
@@ -31,6 +32,7 @@ interface FlowTabProps {
 export function FlowTab({
   project,
   handleEditFlow,
+  handleDuplicateFlow,
   handleShowDeleteModal,
   handleSendFlow,
   handleSendFlowCommand,
@@ -144,6 +146,7 @@ export function FlowTab({
                 key={flow.id}
                 onDeleteFlow={handleShowDeleteModal}
                 onEditFlow={handleEditFlow}
+                onDuplicateFlow={handleDuplicateFlow}
                 onRunFlow={handleSendFlow}
                 onAddCommand={handleAddCommandToFlow}
                 onCopyCommand={handleCopyFlowCommand}
