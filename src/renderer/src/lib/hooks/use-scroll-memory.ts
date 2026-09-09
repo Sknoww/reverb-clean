@@ -20,3 +20,7 @@ export function useScrollMemory(key: string) {
     [key]
   )
 }
+
+export function clearScrollMemory(...keys: string[]) {
+  for (const key of keys) offsets.delete(key)
+}

@@ -3,6 +3,8 @@ import { LastRun, StatusBar } from '@/components/statusBar'
 import { AdbCommand, Config, Flow, Project, ProvisionProgress, ProvisionResult } from '@/types'
 import { useCallback, useEffect, useState } from 'react'
 import { Outlet, useOutletContext } from 'react-router-dom'
+import { clearScrollMemory } from '@/lib/hooks/use-scroll-memory'
+import { clearSessionState } from '@/lib/hooks/use-session-state'
 import { v4 as uuid } from 'uuid'
 import { CommandModal } from './components/commandModal'
 import { CommandDock } from './components/commandDock'
@@ -135,12 +137,50 @@ function ShellLayout() {
 
   useEffect(() => window.provisionAPI.onProgress(setProvisionProgress), [])
 
-  useEffect(() => {
-    if (config.recentProjectId && config.saveLocation && projects.length > 0) {
-      const found = projects.find((p) => p.id === config.recentProjectId)
-      if (found) setProject(found)
+  // Offsets and collapse sets describe the outgoing project's lists, so they are dropped
+  // rather than restored against a document that no longer exists.
+  const applyProjectSelection = useCallback(async (filename: string) => {
+    clearScrollMemory('commands', 'flows')
+    clearSessionState('commands.typeFilter', 'flows.collapsed')
+
+    const [loaded, allProjects, latestConfig] = await Promise.all([
+      filename ? window.projectAPI.getProject(filename) : Promise.resolve(null),
+      window.projectAPI.getAllProjects(),
+      window.configAPI.getConfig()
+    ])
+
+    setProject(loaded)
+    setProjects(allProjects)
+    setConfig(latestConfig)
+  }, [])
+
+  const handleSelectProject = useCallback(
+    async (filename: string) => {
+      if (!filename) return
+      try {
+        await window.configAPI.updateRecentProjectId(filename)
+        if (config.recentProjectId) {
+          await window.configAPI.updateRecentProjectIds(config.recentProjectId, filename)
+        }
+        await applyProjectSelection(filename)
+      } catch (error) {
+        console.error('Error switching project:', error)
+      }
+    },
+    [config.recentProjectId, applyProjectSelection]
+  )
+
+  // Main trashes the file and prunes both recents in one operation, then names what opens next.
+  const handleDeleteProject = useCallback(async () => {
+    if (!config.recentProjectId) return
+    try {
+      const nextProjectId = await window.projectAPI.deleteProject(config.recentProjectId)
+      if (nextProjectId === null) return
+      await applyProjectSelection(nextProjectId)
+    } catch (error) {
+      console.error('Error deleting project:', error)
     }
-  }, [config.recentProjectId, projects])
+  }, [config.recentProjectId, applyProjectSelection])
 
   const closeModal = useCallback(() => {
     setModalState(null)
@@ -710,6 +750,8 @@ function ShellLayout() {
       canResetClient={target.reset}
       canProvision={(config.provision?.steps.length ?? 0) > 0}
       onOpenProjectFile={handleOpenProjectFile}
+      onSelectProject={handleSelectProject}
+      onDeleteProject={handleDeleteProject}
     />
   )
 
