@@ -1,4 +1,3 @@
-import { COMMAND_BAR_KEY } from '@/constants/shortcuts'
 import { cn } from '@/lib/utils'
 import { useDeviceContext } from '@/pages/dashboard/contexts/deviceContext'
 import { useSyncContext } from '@/pages/dashboard/contexts/syncContext'
@@ -8,18 +7,25 @@ import { useLocation } from 'react-router-dom'
 
 export interface LastRun {
   label: string
-  ms: number
-  ok: boolean
+
+  ms?: number
+
+  // 'note' is for an outcome that is neither: a scan the user cancelled did not fail.
+  tone: 'ok' | 'fail' | 'note'
+
+  undo?: () => void
+}
+
+const TONE_STYLE: Record<LastRun['tone'], { color: string; marker: string }> = {
+  ok: { color: 'text-success', marker: '✓' },
+  fail: { color: 'text-red-300', marker: '✕' },
+  note: { color: 'text-stale', marker: '✕' }
 }
 
 export interface FlowProgress {
   name: string
   step: number
   total: number
-}
-
-const HINTS: Record<string, string> = {
-  '/': `${COMMAND_BAR_KEY} command bar`
 }
 
 function formatDuration(ms: number): string {
@@ -62,7 +68,6 @@ export function StatusBar({
   const deviceLabel = activeDevice
     ? `${activeDevice.model ? `${activeDevice.model} · ` : ''}${activeDevice.id}`
     : 'No device'
-  const hint = HINTS[pathname]
 
   return (
     <footer className="flex h-8 flex-shrink-0 items-center justify-between gap-4 border-t border-hairline bg-surface-chrome px-4 font-mono text-[11px] text-text-dim">
@@ -149,19 +154,25 @@ export function StatusBar({
               </span>
             ) : (
               lastRun && (
-                <span
-                  className={cn(
-                    'flex items-center gap-1.5',
-                    lastRun.ok ? 'text-success' : 'text-red-300'
+                <span className={cn('flex items-center gap-1.5', TONE_STYLE[lastRun.tone].color)}>
+                  <span aria-hidden>{TONE_STYLE[lastRun.tone].marker}</span>
+                  <span className="max-w-[280px] truncate">
+                    {lastRun.ms === undefined ? lastRun.label : `last run: ${lastRun.label}`}
+                  </span>
+                  {lastRun.ms !== undefined && <span>· {formatDuration(lastRun.ms)}</span>}
+                  {lastRun.undo && (
+                    <button
+                      type="button"
+                      onClick={lastRun.undo}
+                      title="Restore the previous value"
+                      className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+                    >
+                      · undo
+                    </button>
                   )}
-                >
-                  <span aria-hidden>{lastRun.ok ? '✓' : '✕'}</span>
-                  <span className="max-w-[280px] truncate">last run: {lastRun.label}</span>
-                  <span>· {formatDuration(lastRun.ms)}</span>
                 </span>
               )
             )}
-            {hint && <span>{hint}</span>}
           </>
         )}
       </div>

@@ -29,6 +29,15 @@ const defaultCommand: AdbCommand = {
   description: ''
 }
 
+const SCAN_BUTTON =
+  'flex w-9 items-center justify-center text-zinc-300 transition-colors hover:bg-row-hover hover:text-foreground disabled:cursor-wait disabled:opacity-60'
+
+const SCAN_STAGE_LABELS: Record<string, string> = {
+  capturing: 'Capturing…',
+  selecting: 'Select the code on screen…',
+  decoding: 'Decoding…'
+}
+
 const TYPES = [
   { value: 'barcode', label: 'Barcode' },
   { value: 'speech', label: 'Speech' }
@@ -59,6 +68,7 @@ export function CommandModal({
   const [scanStage, setScanStage] = useState<'idle' | 'capturing' | 'selecting' | 'decoding'>(
     'idle'
   )
+  const [scanMode, setScanMode] = useState<'screens' | 'region' | null>(null)
   const [scanResult, setScanResult] = useState<Awaited<
     ReturnType<Window['barcodeAPI']['scanScreens']>
   > | null>(null)
@@ -78,6 +88,7 @@ export function CommandModal({
       setEditedCommand(command || { ...defaultCommand, id: uuid() })
       setKeywordEdited(false)
       setScanStage('idle')
+      setScanMode(null)
       setScanResult(null)
       setConfirmRepair(false)
       setPermissionError(null)
@@ -110,6 +121,7 @@ export function CommandModal({
     if (type !== 'barcode') {
       scanToken.current += 1
       setScanStage('idle')
+      setScanMode(null)
       setScanResult(null)
     }
     setEditedCommand((prev) => ({ ...prev, type }))
@@ -133,19 +145,24 @@ export function CommandModal({
     reviewValue()
   }
 
-  const handleScan = async () => {
+  const runScan = async (mode: 'screens' | 'region') => {
     if (scanStage !== 'idle') return
     const token = ++scanToken.current
     setScanResult(null)
+    setScanMode(mode)
     setScanStage('capturing')
 
+    const capture =
+      mode === 'region' ? window.barcodeAPI.selectRegion : window.barcodeAPI.scanScreens
+
     try {
-      const result = await window.barcodeAPI.scanScreens((progress) => {
+      const result = await capture((progress) => {
         if (scanToken.current === token) setScanStage(progress)
       })
       if (scanToken.current !== token) return
 
       setScanStage('idle')
+      setScanMode(null)
       if (result.status === 'found') {
         setEditedCommand((prev) => ({ ...prev, value: result.barcode.text }))
         reviewValue()
@@ -155,32 +172,7 @@ export function CommandModal({
     } catch {
       if (scanToken.current !== token) return
       setScanStage('idle')
-      setScanResult({ status: 'capture-failed' })
-    }
-  }
-
-  const handleRegionSelect = async () => {
-    if (scanStage !== 'idle') return
-    const token = ++scanToken.current
-    setScanResult(null)
-    setScanStage('capturing')
-
-    try {
-      const result = await window.barcodeAPI.selectRegion((progress) => {
-        if (scanToken.current === token) setScanStage(progress)
-      })
-      if (scanToken.current !== token) return
-
-      setScanStage('idle')
-      if (result.status === 'found') {
-        setEditedCommand((prev) => ({ ...prev, value: result.barcode.text }))
-        reviewValue()
-        return
-      }
-      if (result.status !== 'cancelled') setScanResult(result)
-    } catch {
-      if (scanToken.current !== token) return
-      setScanStage('idle')
+      setScanMode(null)
       setScanResult({ status: 'capture-failed' })
     }
   }
@@ -270,7 +262,7 @@ export function CommandModal({
             </Field>
 
             <Field htmlFor="value" label="Value">
-              <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
                 <Input
                   ref={valueInput}
                   id="value"
@@ -281,40 +273,47 @@ export function CommandModal({
                   required
                 />
                 {editedCommand.type === 'barcode' && (
-                  <div className="grid grid-cols-2 gap-1.5">
+                  <div className="flex h-10 flex-shrink-0 items-stretch overflow-hidden rounded-[9px] border border-border-control bg-surface-control">
                     <button
                       type="button"
-                      onClick={handleScan}
+                      onClick={() => void runScan('screens')}
                       disabled={scanStage !== 'idle'}
-                      className="flex h-10 w-full items-center justify-center gap-2 rounded-[9px] border border-border-control bg-surface-control px-3 text-xs text-zinc-300 transition-colors hover:bg-row-hover hover:text-foreground disabled:cursor-wait disabled:opacity-60"
+                      aria-label="Scan screens"
+                      className={SCAN_BUTTON}
                       title="Scan all visible screens for Data Matrix and QR codes"
                     >
-                      {scanStage !== 'idle' ? (
+                      {scanStage !== 'idle' && scanMode === 'screens' ? (
                         <LuLoaderCircle className="h-4 w-4 animate-spin" aria-hidden />
                       ) : (
                         <LuScanLine className="h-4 w-4" aria-hidden />
                       )}
-                      {scanStage === 'capturing'
-                        ? 'Capturing…'
-                        : scanStage === 'selecting'
-                          ? 'Selecting…'
-                          : scanStage === 'decoding'
-                            ? 'Decoding…'
-                            : 'Scan screens'}
                     </button>
+
+                    <span className="w-px flex-shrink-0 bg-border-control" aria-hidden />
+
                     <button
                       type="button"
-                      onClick={handleRegionSelect}
+                      onClick={() => void runScan('region')}
                       disabled={scanStage !== 'idle'}
-                      className="flex h-10 w-full items-center justify-center gap-2 rounded-[9px] border border-border-control bg-surface-control px-3 text-xs text-zinc-300 transition-colors hover:bg-row-hover hover:text-foreground disabled:cursor-wait disabled:opacity-60"
+                      aria-label="Select region"
+                      className={SCAN_BUTTON}
                       title="Select part of a screen to scan"
                     >
-                      <LuCrosshair className="h-4 w-4" aria-hidden />
-                      Select region
+                      {scanStage !== 'idle' && scanMode === 'region' ? (
+                        <LuLoaderCircle className="h-4 w-4 animate-spin" aria-hidden />
+                      ) : (
+                        <LuCrosshair className="h-4 w-4" aria-hidden />
+                      )}
                     </button>
                   </div>
                 )}
               </div>
+
+              {editedCommand.type === 'barcode' && scanStage !== 'idle' && (
+                <p role="status" className="text-xs leading-snug text-glyph-dim">
+                  {SCAN_STAGE_LABELS[scanStage]}
+                </p>
+              )}
 
               {editedCommand.type === 'barcode' && scanResult?.status === 'not-found' && (
                 <p role="status" className="text-xs leading-snug text-amber-200">
@@ -351,7 +350,7 @@ export function CommandModal({
                   })}
                   <button
                     type="button"
-                    onClick={handleRegionSelect}
+                    onClick={() => void runScan('region')}
                     className="self-start px-2 py-1 text-xs font-medium text-zinc-300 hover:text-foreground"
                   >
                     Select a smaller region…

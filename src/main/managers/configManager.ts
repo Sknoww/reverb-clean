@@ -12,6 +12,7 @@ import {
   ProvisionConfig,
   ProvisionStep,
   ProvisionStepType,
+  QuickScanMode,
   SyncConfig,
   SyncProfile,
   TargetConfig
@@ -45,7 +46,9 @@ const defaultBehaviorConfig: BehaviorConfig = {
   adbTimeoutMs: 15_000,
   jsTimeoutMs: 10_000,
 
-  provisionTimeoutMs: 300_000
+  provisionTimeoutMs: 300_000,
+
+  quickScanMode: 'region'
 }
 
 const defaultLoggingConfig: LoggingConfig = {
@@ -165,6 +168,8 @@ export const BEHAVIOR_BOUNDS = {
   provisionTimeoutMs: { min: 5_000, max: 1_800_000 }
 } as const
 
+export const QUICK_SCAN_MODES: readonly QuickScanMode[] = ['region', 'screens']
+
 export const PROVISION_WAIT_BOUNDS = { min: 0, max: 600_000 } as const
 
 export const LOGGING_BOUNDS = {
@@ -204,7 +209,10 @@ const validateBehaviorConfig = (
       BEHAVIOR_BOUNDS.provisionTimeoutMs.min,
       BEHAVIOR_BOUNDS.provisionTimeoutMs.max,
       fallback.provisionTimeoutMs
-    )
+    ),
+    quickScanMode: QUICK_SCAN_MODES.includes(behavior.quickScanMode)
+      ? behavior.quickScanMode
+      : fallback.quickScanMode
   }
 }
 

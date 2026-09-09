@@ -68,6 +68,8 @@ export interface TargetConfig {
   barcodeIntent: string
 }
 
+export type QuickScanMode = 'region' | 'screens'
+
 export interface BehaviorConfig {
   flowDelayMs: number
 
@@ -76,6 +78,8 @@ export interface BehaviorConfig {
   jsTimeoutMs: number
 
   provisionTimeoutMs: number
+
+  quickScanMode: QuickScanMode
 }
 
 export type ProvisionStepType = 'shell' | 'push' | 'grant' | 'wait'

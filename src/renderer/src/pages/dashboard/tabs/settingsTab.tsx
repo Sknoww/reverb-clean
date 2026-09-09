@@ -61,7 +61,8 @@ const FALLBACK_BEHAVIOR: BehaviorConfig = {
   flowDelayMs: 5000,
   adbTimeoutMs: 15_000,
   jsTimeoutMs: 10_000,
-  provisionTimeoutMs: 300_000
+  provisionTimeoutMs: 300_000,
+  quickScanMode: 'region'
 }
 
 const FALLBACK_LOGGING: LoggingConfig = { level: 'info', maxAgeDays: 7, maxFiles: 10 }
@@ -165,7 +166,7 @@ export function SettingsTab({
 
         <SettingsSection
           title="Behavior"
-          description="Timings the app used to hard-code. Each applies to the next run — nothing here needs a restart."
+          description="Timings the app used to hard-code, and what the barcode scan button captures. Each applies to the next run — nothing here needs a restart."
         >
           <BehaviorSettings
             behavior={config.behavior ?? FALLBACK_BEHAVIOR}

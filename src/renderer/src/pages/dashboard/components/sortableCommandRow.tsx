@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils'
 import { useFlash } from '@/lib/hooks/use-flash'
 import { AdbCommand, Flow } from '@/types'
+import { RescanButton } from './commandTable'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Loader2 } from 'lucide-react'
@@ -8,7 +9,7 @@ import { LuCheck, LuCopy, LuGripVertical, LuPencil, LuPlay, LuTrash2 } from 'rea
 
 export type FlowRowStatus = 'idle' | 'queued' | 'running' | 'done'
 
-export const FLOW_GRID = '26px 30px 84px 150px 116px 1fr 130px 152px'
+export const FLOW_GRID = '26px 30px 84px 150px 116px 1fr 130px 180px'
 
 const TYPE_STYLES: Record<string, { dot: string; label: string }> = {
   barcode: { dot: 'bg-type-barcode', label: 'text-type-barcode' },
@@ -38,6 +39,7 @@ interface SortableCommandRowProps {
   onDeleteCommand: (flow: Flow, command: AdbCommand) => void
   onSendCommand: (command: AdbCommand) => void
   onCopyCommand: (flow: Flow, command: AdbCommand) => void
+  onRescanCommand: (command: AdbCommand) => void
 
   canSend: boolean
 }
@@ -50,6 +52,7 @@ export function SortableCommandRow({
   onDeleteCommand,
   onSendCommand,
   onCopyCommand,
+  onRescanCommand,
   canSend
 }: SortableCommandRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -121,6 +124,7 @@ export function SortableCommandRow({
       </span>
 
       <span className="flex items-center justify-end gap-0.5">
+        <RescanButton command={command} onRescan={onRescanCommand} />
         <button
           type="button"
           onClick={() => onCopyCommand(flow, command)}

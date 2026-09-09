@@ -46,6 +46,7 @@ interface FlowCardProps {
   onDeleteCommand: (flow: Flow, command: AdbCommand) => void
   onReorderCommands: (flow: Flow, commands: AdbCommand[]) => void
   onSendCommand: (command: AdbCommand) => void
+  onRescanCommand: (command: AdbCommand) => void
 
   canSend: boolean
 
@@ -65,6 +66,7 @@ export function FlowCard({
   onEditCommand,
   onDeleteCommand,
   onSendCommand,
+  onRescanCommand,
   onReorderCommands,
   canSend,
   collapsed,
@@ -301,6 +303,7 @@ export function FlowCard({
                     onEditCommand={onEditCommand}
                     onDeleteCommand={onDeleteCommand}
                     onSendCommand={onSendCommand}
+                    onRescanCommand={onRescanCommand}
                     canSend={canSend}
                   />
                 ))}

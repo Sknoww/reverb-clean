@@ -1,4 +1,4 @@
-import { BehaviorConfig, LoggingConfig, LogLevel } from '@/types'
+import { BehaviorConfig, LoggingConfig, LogLevel, QuickScanMode } from '@/types'
 import {
   SETTINGS_BUTTON,
   SettingsDivider,
@@ -16,6 +16,11 @@ const BOUNDS = {
   maxAgeDays: { min: 1, max: 365 },
   maxFiles: { min: 1, max: 500 }
 } as const
+
+const QUICK_SCAN_MODES: readonly { value: QuickScanMode; label: string }[] = [
+  { value: 'region', label: 'Region' },
+  { value: 'screens', label: 'All screens' }
+]
 
 const LOG_LEVELS: readonly { value: LogLevel; label: string }[] = [
   { value: 'error', label: 'error' },
@@ -70,6 +75,16 @@ export function BehaviorSettings({
         min={BOUNDS.jsTimeoutMs.min}
         max={BOUNDS.jsTimeoutMs.max}
         onCommit={(jsTimeoutMs) => void update({ jsTimeoutMs })}
+      />
+
+      <SettingsDivider />
+
+      <SettingsSelect
+        label="Quick barcode scan"
+        hint="What the scan button on a barcode row captures. All screens falls back to region selection when it finds more than one code."
+        value={behavior.quickScanMode}
+        options={QUICK_SCAN_MODES}
+        onChange={(quickScanMode) => void update({ quickScanMode })}
       />
 
       <SettingsDivider />
