@@ -6,7 +6,7 @@ contextBridge.exposeInMainWorld('projectAPI', {
   saveProject: (project) => ipcRenderer.invoke('project:save', project),
   getProject: (projectId) => ipcRenderer.invoke('project:get', projectId),
   getAllProjects: () => ipcRenderer.invoke('project:getAll'),
-  deleteProject: (projectId) => ipcRenderer.invoke('project:delete', projectId),
+  deleteProject: (filename) => ipcRenderer.invoke('project:delete', filename),
   duplicateProject: (sourceFilename, newName, newDescription) =>
     ipcRenderer.invoke('project:duplicate', sourceFilename, newName, newDescription)
 })

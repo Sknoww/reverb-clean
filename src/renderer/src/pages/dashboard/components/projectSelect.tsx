@@ -3,27 +3,36 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { Project } from '@/types'
-import { Label } from '@radix-ui/react-label'
 import { useState } from 'react'
+import { LuTrash2 } from 'react-icons/lu'
 import { MdKeyboardArrowDown } from 'react-icons/md'
+import { ConfirmModal } from './confirmModal'
 import { ProjectModal } from './projectModal'
 
 interface ProjectMenuProps {
   projects: Project[] | null
   currentProject: Project | null
   currentFile: string | ''
+  onOpenProjectFile: () => void
 }
 
-export function ProjectMenu({ projects, currentProject, currentFile }: ProjectMenuProps) {
+export function ProjectMenu({
+  projects,
+  currentProject,
+  currentFile,
+  onOpenProjectFile
+}: ProjectMenuProps) {
   const [modalOpen, setModalOpen] = useState(false)
   const [projectAlreadyExists, setProjectAlreadyExists] = useState(false)
   const [duplicateModalOpen, setDuplicateModalOpen] = useState(false)
   const [projectToDuplicate, setProjectToDuplicate] = useState<Project | null>(null)
   const [duplicateAlreadyExists, setDuplicateAlreadyExists] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const handleSelectProject = async (projectId: string) => {
     if (projectId) {
@@ -83,6 +92,16 @@ export function ProjectMenu({ projects, currentProject, currentFile }: ProjectMe
     setDuplicateModalOpen(false)
   }
 
+  // Main trashes the file and prunes the recents, then reports what to open in its place;
+  // reloading picks that up rather than re-deriving the selection here.
+  const handleDeleteProject = async () => {
+    setConfirmDelete(false)
+    if (!currentFile) return
+
+    await window.projectAPI.deleteProject(currentFile)
+    window.location.reload()
+  }
+
   const handleSaveProject = async (newProject: Project, isNewProject: boolean) => {
     if (isNewProject) {
       const id = newProject.name.replace(/\s/g, '').toLowerCase()
@@ -109,39 +128,12 @@ export function ProjectMenu({ projects, currentProject, currentFile }: ProjectMe
     return existingProject !== null
   }
 
-  const renderProjectName = () => (
-    <>
-      <span className="min-w-0 truncate">{currentProject?.name ?? 'No project selected'}</span>
-      <MdKeyboardArrowDown className="flex-shrink-0 text-[13px]" />
-    </>
-  )
+  const otherProjects = (projects ?? [])
+    .filter((project) => project.id !== currentProject?.id)
+    .reverse()
 
-  const renderRecentProjects = () => {
-    if (!projects || projects.length === 0) {
-      return null
-    }
-
-    const filteredProjects = projects
-      .filter((project) => project.id !== currentProject?.id)
-      .reverse()
-
-    return (
-      <>
-        <DropdownMenuGroup>
-          {filteredProjects.map((project) => (
-            <DropdownMenuItem
-              key={project.id}
-              className="hover:bg-primary cursor-pointer"
-              onClick={() => handleSelectProject(`${project.id}.project.json`)}
-            >
-              {project.name}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-      </>
-    )
-  }
+  const commandCount = currentProject?.commands.length ?? 0
+  const flowCount = currentProject?.flows.length ?? 0
 
   return (
     <>
@@ -153,40 +145,63 @@ export function ProjectMenu({ projects, currentProject, currentFile }: ProjectMe
               className="flex min-w-0 max-w-[280px] items-center gap-1.5 rounded-md px-1 py-0.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
               title={currentProject?.name}
             >
-              {renderProjectName()}
+              <span className="min-w-0 truncate">
+                {currentProject?.name ?? 'No project selected'}
+              </span>
+              <MdKeyboardArrowDown className="flex-shrink-0 text-[13px]" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="start">
+
+          <DropdownMenuContent className="w-60" align="start">
+            <DropdownMenuLabel className="font-mono text-[11px] font-normal uppercase tracking-[0.06em] text-glyph-dim">
+              Open
+            </DropdownMenuLabel>
             <DropdownMenuGroup>
-              <DropdownMenuItem className="cursor-pointer" onClick={handleAddProject}>
-                New Project
+              {otherProjects.map((project) => (
+                <DropdownMenuItem
+                  key={project.id}
+                  className="cursor-pointer text-[13px]"
+                  onSelect={() => handleSelectProject(`${project.id}.project.json`)}
+                >
+                  <span className="min-w-0 truncate">{project.name}</span>
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuItem className="cursor-pointer text-[13px]" onSelect={handleBrowseFiles}>
+                Browse…
               </DropdownMenuItem>
             </DropdownMenuGroup>
 
             <DropdownMenuSeparator />
 
             <DropdownMenuGroup>
+              <DropdownMenuItem className="cursor-pointer text-[13px]" onSelect={handleAddProject}>
+                New project
+              </DropdownMenuItem>
               <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={handleOpenDuplicate}
+                className="cursor-pointer text-[13px]"
                 disabled={!currentProject}
+                onSelect={handleOpenDuplicate}
               >
-                Duplicate Project
+                Duplicate project
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer text-[13px]"
+                disabled={!currentProject}
+                onSelect={onOpenProjectFile}
+              >
+                Edit project JSON
               </DropdownMenuItem>
             </DropdownMenuGroup>
 
             <DropdownMenuSeparator />
 
-            <Label htmlFor="project-select" className="text-xs px-2">
-              Recent...
-            </Label>
-            {renderRecentProjects()}
-
-            <DropdownMenuGroup>
-              <DropdownMenuItem className="cursor-pointer" onClick={handleBrowseFiles}>
-                Browse...
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
+            <DropdownMenuItem
+              className="cursor-pointer text-[13px] text-red-300 focus:text-red-300"
+              disabled={!currentProject}
+              onSelect={() => setConfirmDelete(true)}
+            >
+              Delete project…
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -203,10 +218,30 @@ export function ProjectMenu({ projects, currentProject, currentFile }: ProjectMe
         onClose={handleCloseDuplicate}
         project={projectToDuplicate}
         onSave={handleSaveDuplicate}
-        titleText="Duplicate Project"
+        titleText="Duplicate project"
         submitLabel="Duplicate"
         error={duplicateAlreadyExists}
       />
+
+      <ConfirmModal
+        isOpen={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={handleDeleteProject}
+        marker={<LuTrash2 className="h-3.5 w-3.5 text-red-400" aria-hidden />}
+        title="Delete project"
+        confirmLabel="Delete project"
+        description="Move this project's file to the trash."
+      >
+        <p className="text-[13px] leading-relaxed text-muted-foreground">
+          <span className="font-semibold text-foreground">{currentProject?.name}</span> holds{' '}
+          {commandCount} command{commandCount === 1 ? '' : 's'} and {flowCount} flow
+          {flowCount === 1 ? '' : 's'}.
+        </p>
+        <p className="text-[13px] leading-relaxed text-muted-foreground">
+          Its file goes to the trash, so you can put it back from there. Reverb opens your most
+          recent other project instead.
+        </p>
+      </ConfirmModal>
     </>
   )
 }

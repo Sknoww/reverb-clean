@@ -33,6 +33,7 @@ import {
 } from './managers/screenPermissionManager'
 import { exportBundle, importBundle } from './managers/backupManager'
 import {
+  forgetProject,
   getConfigFilePath,
   listConfigSnapshots,
   loadConfig,
@@ -214,7 +215,13 @@ function setupIPC() {
   ipcMain.handle('project:save', (_, project) => saveProject(project))
   ipcMain.handle('project:get', (_, projectId) => getProject(projectId))
   ipcMain.handle('project:getAll', () => getAllProjects())
-  ipcMain.handle('project:delete', (_, projectId) => deleteProject(projectId))
+  // Trashing the file and pruning the recents are one operation: a surviving entry would
+  // resurrect the project if a later one reused its name.
+  ipcMain.handle('project:delete', async (_, filename: string) => {
+    const deleted = await deleteProject(filename)
+    if (!deleted) return null
+    return await forgetProject(filename)
+  })
   ipcMain.handle('project:duplicate', (_, sourceFilename, newName, newDescription) =>
     duplicateProject(sourceFilename, newName, newDescription)
   )
