@@ -19,13 +19,17 @@ interface ProjectMenuProps {
   currentProject: Project | null
   currentFile: string | ''
   onOpenProjectFile: () => void
+  onSelectProject: (filename: string) => void
+  onDeleteProject: () => void
 }
 
 export function ProjectMenu({
   projects,
   currentProject,
   currentFile,
-  onOpenProjectFile
+  onOpenProjectFile,
+  onSelectProject,
+  onDeleteProject
 }: ProjectMenuProps) {
   const [modalOpen, setModalOpen] = useState(false)
   const [projectAlreadyExists, setProjectAlreadyExists] = useState(false)
@@ -34,22 +38,10 @@ export function ProjectMenu({
   const [duplicateAlreadyExists, setDuplicateAlreadyExists] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  const handleSelectProject = async (projectId: string) => {
-    if (projectId) {
-      await window.configAPI.updateRecentProjectId(projectId)
-
-      if (currentProject) {
-        await window.configAPI.updateRecentProjectIds(currentFile, projectId)
-      }
-
-      window.location.reload()
-    }
-  }
-
   const handleBrowseFiles = async () => {
     const selectedFile = await window.dialogAPI.selectFile()
     if (selectedFile) {
-      handleSelectProject(selectedFile)
+      onSelectProject(selectedFile)
     }
   }
 
@@ -87,18 +79,14 @@ export function ProjectMenu({
       newProject.description || ''
     )
     if (result) {
-      handleSelectProject(`${result.id}.project.json`)
+      onSelectProject(`${result.id}.project.json`)
     }
     setDuplicateModalOpen(false)
   }
 
-  // Main owns the selection move, so reloading picks it up rather than re-deriving it here.
-  const handleDeleteProject = async () => {
+  const handleConfirmDelete = () => {
     setConfirmDelete(false)
-    if (!currentFile) return
-
-    await window.projectAPI.deleteProject(currentFile)
-    window.location.reload()
+    onDeleteProject()
   }
 
   const handleSaveProject = async (newProject: Project, isNewProject: boolean) => {
@@ -118,7 +106,7 @@ export function ProjectMenu({
     }
 
     window.projectAPI.saveProject(newProject)
-    handleSelectProject(`${newProject.id}.project.json`)
+    onSelectProject(`${newProject.id}.project.json`)
     setModalOpen(false)
   }
 
@@ -160,7 +148,7 @@ export function ProjectMenu({
                 <DropdownMenuItem
                   key={project.id}
                   className="cursor-pointer text-[13px]"
-                  onSelect={() => handleSelectProject(`${project.id}.project.json`)}
+                  onSelect={() => onSelectProject(`${project.id}.project.json`)}
                 >
                   <span className="min-w-0 truncate">{project.name}</span>
                 </DropdownMenuItem>
@@ -225,7 +213,7 @@ export function ProjectMenu({
       <ConfirmModal
         isOpen={confirmDelete}
         onClose={() => setConfirmDelete(false)}
-        onConfirm={handleDeleteProject}
+        onConfirm={handleConfirmDelete}
         marker={<LuTrash2 className="h-3.5 w-3.5 text-red-400" aria-hidden />}
         title="Delete project"
         confirmLabel="Delete project"

@@ -11,3 +11,8 @@ export function useSessionState<T>(key: string, initial: T): [T, Dispatch<SetSta
 
   return [value, setValue]
 }
+
+// Session state describing a document that has been replaced has to be dropped with it.
+export function clearSessionState(...keys: string[]) {
+  for (const key of keys) store.delete(key)
+}

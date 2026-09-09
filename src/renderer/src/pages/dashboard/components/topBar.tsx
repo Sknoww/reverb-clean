@@ -39,6 +39,8 @@ interface TopBarProps {
 
   canProvision: boolean
   onOpenProjectFile: () => void
+  onSelectProject: (filename: string) => void
+  onDeleteProject: () => void
 }
 
 export function TopBar({
@@ -51,7 +53,9 @@ export function TopBar({
   onRunProvision,
   canResetClient,
   canProvision,
-  onOpenProjectFile
+  onOpenProjectFile,
+  onSelectProject,
+  onDeleteProject
 }: TopBarProps) {
   const [confirmClear, setConfirmClear] = useState(false)
   const { pathname } = useLocation()
@@ -122,6 +126,8 @@ export function TopBar({
               projects={projects}
               currentFile={config.recentProjectId}
               onOpenProjectFile={onOpenProjectFile}
+              onSelectProject={onSelectProject}
+              onDeleteProject={onDeleteProject}
             />
             <button
               type="button"
