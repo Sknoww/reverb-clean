@@ -40,6 +40,27 @@ export const nextRecentProjectIds = (
     .filter((id) => id !== newProjectId)
     .slice(-RECENT_PROJECT_LIMIT)
 
+// Rebuilt field by field, so any new field must be added here or it never reaches disk.
+export const validateCommonCommands = (value: any): AdbCommand[] => {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map((cmd: any): AdbCommand | null => {
+      if (!cmd || typeof cmd !== 'object' || !cmd.name || !cmd.keyword || !cmd.type) return null
+
+      return {
+        id: cmd.id || `${cmd.keyword}-${Date.now()}`,
+        name: cmd.name,
+        keyword: cmd.keyword,
+        type: cmd.type,
+        value: cmd.value || '',
+        description: cmd.description || '',
+        ...(cmd.pinned === true ? { pinned: true } : {})
+      }
+    })
+    .filter((cmd: AdbCommand | null): cmd is AdbCommand => cmd !== null)
+}
+
 const defaultSyncConfig: SyncConfig = {
   sourceFile: '',
   targetFile: '',
@@ -394,23 +415,7 @@ const validateAndFillConfig = (config: any): Config => {
           config.mostRecentProjectIds.filter((id: any) => typeof id === 'string')
         )
       : defaultConfig.mostRecentProjectIds,
-    commonCommands: Array.isArray(config.commonCommands)
-      ? config.commonCommands
-          .map((cmd: any) => {
-            if (cmd && typeof cmd === 'object' && cmd.name && cmd.keyword && cmd.type) {
-              return {
-                id: cmd.id || `${cmd.keyword}-${Date.now()}`,
-                name: cmd.name,
-                keyword: cmd.keyword,
-                type: cmd.type,
-                value: cmd.value || '',
-                description: cmd.description || ''
-              }
-            }
-            return null
-          })
-          .filter((cmd: any) => cmd !== null)
-      : defaultConfig.commonCommands,
+    commonCommands: validateCommonCommands(config.commonCommands),
     dockCollapsed:
       typeof config.dockCollapsed === 'boolean'
         ? config.dockCollapsed

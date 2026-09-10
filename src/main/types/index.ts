@@ -5,6 +5,8 @@ export interface AdbCommand {
   type: string
   value: string
   description?: string
+  // Dock-only: pins the command to the top block. Never set on a project or flow command.
+  pinned?: boolean
 }
 
 export interface Flow {

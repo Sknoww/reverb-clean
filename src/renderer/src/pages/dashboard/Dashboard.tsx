@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Outlet, useOutletContext } from 'react-router-dom'
 import { clearScrollMemory } from '@/lib/hooks/use-scroll-memory'
 import { clearSessionState } from '@/lib/hooks/use-session-state'
+import { togglePinned } from '@/lib/dockOrder'
 import { v4 as uuid } from 'uuid'
 import { CommandModal } from './components/commandModal'
 import { CommandDock } from './components/commandDock'
@@ -313,6 +314,10 @@ function ShellLayout() {
     window.configAPI.updateCommonCommands(reorderedCommands)
   }
 
+  const handleTogglePinCommonCommand = (command: AdbCommand) => {
+    handleReorderCommonCommands(togglePinned(config.commonCommands, command.keyword))
+  }
+
   const handleReorderCommands = (reorderedCommands: AdbCommand[]) => {
     if (!project) return
     const updatedProject = { ...project, commands: reorderedCommands }
@@ -549,10 +554,17 @@ function ShellLayout() {
     window.projectAPI.saveProject(updatedProject)
   }
 
+  // A dock command's pinned flag is dock-only, so it must not travel into a project file.
+  const toFlowCommand = (command: AdbCommand): AdbCommand => {
+    const copy = { ...command, id: uuid() }
+    delete copy.pinned
+    return copy
+  }
+
   const handleDropCommandOnFlow = (flow: Flow, command: AdbCommand) => {
     if (!project) return
     const updatedFlows = project.flows.map((f) =>
-      f.id === flow.id ? { ...f, commands: [...f.commands, { ...command, id: uuid() }] } : f
+      f.id === flow.id ? { ...f, commands: [...f.commands, toFlowCommand(command)] } : f
     )
     const updatedProject = { ...project, flows: updatedFlows }
     setProject(updatedProject)
@@ -765,6 +777,7 @@ function ShellLayout() {
       handleShowDeleteModal={handleShowDeleteCommonModal}
       handleSendCommand={handleSendCommand}
       handleRescanCommand={(cmd) => handleRescanCommand(cmd, { kind: 'common' })}
+      handleTogglePin={handleTogglePinCommonCommand}
       canSend={target.commands}
     />
   )

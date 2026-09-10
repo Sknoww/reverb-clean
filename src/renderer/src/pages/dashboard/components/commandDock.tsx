@@ -8,16 +8,23 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useFlash } from '@/lib/hooks/use-flash'
 import { useScrollMemory } from '@/lib/hooks/use-scroll-memory'
+import { useSessionState } from '@/lib/hooks/use-session-state'
+import { isPinned, splitPinned } from '@/lib/dockOrder'
 import { AdbCommand } from '@/types'
 import { RescanButton } from './commandTable'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { useEffect } from 'react'
 import { CSS } from '@dnd-kit/utilities'
 import {
   LuCheck,
+  LuChevronDown,
+  LuChevronRight,
   LuChevronsLeft,
   LuChevronsRight,
   LuEllipsis,
   LuGripVertical,
+  LuPin,
+  LuPinOff,
   LuPlay,
   LuPlus
 } from 'react-icons/lu'
@@ -31,6 +38,7 @@ interface CommandDockProps {
   handleShowDeleteModal: (command: AdbCommand) => void
   handleSendCommand: (command: AdbCommand) => void
   handleRescanCommand: (command: AdbCommand) => void
+  handleTogglePin: (command: AdbCommand) => void
 
   canSend: boolean
 }
@@ -41,6 +49,7 @@ function DockRow({
   onDelete,
   onSend,
   onRescan,
+  onTogglePin,
   canSend
 }: {
   command: AdbCommand
@@ -48,6 +57,7 @@ function DockRow({
   onDelete: (command: AdbCommand) => void
   onSend: (command: AdbCommand) => void
   onRescan: (command: AdbCommand) => void
+  onTogglePin: (command: AdbCommand) => void
   canSend: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -80,7 +90,7 @@ function DockRow({
           {...attributes}
           {...listeners}
           className="flex flex-shrink-0 cursor-grab items-center text-glyph-dimmer hover:text-muted-foreground"
-          aria-label="Drag to reorder"
+          aria-label={`Reorder ${command.name}`}
         >
           <LuGripVertical size={15} />
         </span>
@@ -105,6 +115,17 @@ function DockRow({
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-40" align="end">
             <DropdownMenuGroup>
+              <DropdownMenuItem className="cursor-pointer" onClick={() => onTogglePin(command)}>
+                {isPinned(command) ? (
+                  <>
+                    <LuPinOff size={14} /> Unpin
+                  </>
+                ) : (
+                  <>
+                    <LuPin size={14} /> Pin to top
+                  </>
+                )}
+              </DropdownMenuItem>
               <DropdownMenuItem className="cursor-pointer" onClick={() => onEdit(command)}>
                 Edit
               </DropdownMenuItem>
@@ -139,6 +160,26 @@ function DockRow({
   )
 }
 
+function DockRows({
+  commands,
+  ...rowProps
+}: {
+  commands: AdbCommand[]
+} & Omit<Parameters<typeof DockRow>[0], 'command'>) {
+  return (
+    <SortableContext
+      items={commands.map((command) => command.keyword)}
+      strategy={verticalListSortingStrategy}
+    >
+      <div className="flex flex-col gap-2">
+        {commands.map((command) => (
+          <DockRow key={command.keyword} command={command} {...rowProps} />
+        ))}
+      </div>
+    </SortableContext>
+  )
+}
+
 export function CommandDock({
   commands,
   collapsed,
@@ -148,9 +189,18 @@ export function CommandDock({
   handleShowDeleteModal,
   handleSendCommand,
   handleRescanCommand,
+  handleTogglePin,
   canSend
 }: CommandDockProps) {
   const bodyRef = useScrollMemory('dock')
+  // Decided once per session from the library as launched, never re-derived: pinning a command
+  // mid-session must not collapse the list out from under the row you are still reading.
+  const [restOpen, setRestOpen] = useSessionState<boolean | null>('dock-rest-open', null)
+
+  const launchedPinned = (commands ?? []).some(isPinned)
+  useEffect(() => {
+    if (restOpen === null && (commands?.length ?? 0) > 0) setRestOpen(!launchedPinned)
+  }, [restOpen, commands, launchedPinned, setRestOpen])
 
   if (collapsed) {
     return (
@@ -169,6 +219,16 @@ export function CommandDock({
   }
 
   const count = commands?.length ?? 0
+  const { pinned, rest } = splitPinned(commands ?? [])
+
+  const rowProps = {
+    onEdit: (command: AdbCommand) => handleEditCommand(command, true),
+    onDelete: handleShowDeleteModal,
+    onSend: handleSendCommand,
+    onRescan: handleRescanCommand,
+    onTogglePin: handleTogglePin,
+    canSend
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -222,24 +282,25 @@ export function CommandDock({
             </Button>
           </div>
         ) : (
-          <SortableContext
-            items={commands!.map((command) => command.keyword)}
-            strategy={verticalListSortingStrategy}
-          >
-            <div className="flex flex-col gap-2">
-              {commands!.map((command) => (
-                <DockRow
-                  key={command.keyword}
-                  command={command}
-                  onEdit={(c) => handleEditCommand(c, true)}
-                  onDelete={handleShowDeleteModal}
-                  onSend={handleSendCommand}
-                  onRescan={handleRescanCommand}
-                  canSend={canSend}
-                />
-              ))}
-            </div>
-          </SortableContext>
+          <div className="flex flex-col gap-2">
+            {pinned.length > 0 && <DockRows commands={pinned} {...rowProps} />}
+
+            {/* With nothing pinned the dock is one flat list, exactly as it was before pinning. */}
+            {pinned.length > 0 && rest.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setRestOpen(!restOpen)}
+                aria-expanded={restOpen !== false}
+                className="flex w-full items-center gap-1.5 rounded-md px-1 py-1 text-[11px] uppercase tracking-[0.06em] text-glyph-dim transition-colors hover:text-foreground"
+              >
+                {restOpen !== false ? <LuChevronDown size={13} /> : <LuChevronRight size={13} />}
+                All commands
+                <span className="font-mono text-glyph-dimmer">{rest.length}</span>
+              </button>
+            )}
+
+            {rest.length > 0 && restOpen !== false && <DockRows commands={rest} {...rowProps} />}
+          </div>
         )}
       </div>
     </div>
