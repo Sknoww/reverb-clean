@@ -498,7 +498,7 @@ const acquireLockSync = (maxRetries = 20, retryDelayMs = 50): boolean => {
 
         const start = Date.now()
         while (Date.now() - start < retryDelayMs) {
-          /* Wait for the lock holder. */
+          // Synchronous callers cannot await, so the retry delay has to spin.
         }
       } else {
         logger.error('Failed to acquire lock (sync):', error)

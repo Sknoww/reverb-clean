@@ -35,7 +35,7 @@ export function reorderWithinBlock(
 ): AdbCommand[] | null {
   const active = commands.find((command) => command.keyword === activeKeyword)
   const over = commands.find((command) => command.keyword === overKeyword)
-  // Pinning is the star's job, so a drag across the boundary is not a reorder.
+  // Membership changes only through the row menu, so a cross-block drag is not a reorder.
   if (!active || !over || isPinned(active) !== isPinned(over)) return null
 
   const slots: number[] = []
