@@ -14,6 +14,7 @@ import {
 } from '@dnd-kit/core'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { reorderWithinBlock } from '@/lib/dockOrder'
 import { createContext, ReactNode, useContext, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { LuGripVertical } from 'react-icons/lu'
@@ -87,10 +88,8 @@ export function ShellDndProvider({
         return
       }
       if (!commonCommands) return
-      const oldIndex = commonCommands.findIndex((command) => command.keyword === active.id)
-      const newIndex = commonCommands.findIndex((command) => command.keyword === over.id)
-      if (oldIndex === -1 || newIndex === -1) return
-      onReorderCommonCommands(arrayMove(commonCommands, oldIndex, newIndex))
+      const reordered = reorderWithinBlock(commonCommands, String(active.id), String(over.id))
+      if (reordered) onReorderCommonCommands(reordered)
       return
     }
 
