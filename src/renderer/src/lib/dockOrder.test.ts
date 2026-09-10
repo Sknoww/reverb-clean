@@ -11,8 +11,7 @@ const cmd = (keyword: string, pinned?: boolean): AdbCommand => ({
   ...(pinned ? { pinned: true } : {})
 })
 
-// The work-machine shape: a pinned entry sequence interleaved with an unpinned tail.
-const library = [
+const interleavedLibrary = [
   cmd('MHE', true),
   cmd('Preview'),
   cmd('NoEquip', true),
@@ -26,7 +25,7 @@ const keywords = (commands: AdbCommand[]) => commands.map((command) => command.k
 
 describe('splitPinned', () => {
   it('keeps each block in the flat array order', () => {
-    const { pinned, rest } = splitPinned(library)
+    const { pinned, rest } = splitPinned(interleavedLibrary)
     expect(keywords(pinned)).toEqual(['MHE', 'NoEquip', 'Process', 'Induct'])
     expect(keywords(rest)).toEqual(['Preview', 'Cancel', 'Exit'])
   })
@@ -40,52 +39,54 @@ describe('splitPinned', () => {
 
 describe('togglePinned', () => {
   it('pins an unpinned command and leaves its neighbours alone', () => {
-    const next = togglePinned(library, 'Cancel')
+    const next = togglePinned(interleavedLibrary, 'Cancel')
     expect(isPinned(next[3])).toBe(true)
-    expect(keywords(next)).toEqual(keywords(library))
+    expect(keywords(next)).toEqual(keywords(interleavedLibrary))
   })
 
   it('unpins a pinned command without moving it in the flat array', () => {
-    const next = togglePinned(library, 'MHE')
+    const next = togglePinned(interleavedLibrary, 'MHE')
     expect(isPinned(next[0])).toBe(false)
     expect(next[0].keyword).toBe('MHE')
   })
 
   it('round-trips, so pinning and unpinning restores the original ordering', () => {
-    expect(togglePinned(togglePinned(library, 'Exit'), 'Exit')).toEqual(library)
+    expect(togglePinned(togglePinned(interleavedLibrary, 'Exit'), 'Exit')).toEqual(
+      interleavedLibrary
+    )
   })
 })
 
 describe('reorderWithinBlock', () => {
   it('reorders the pinned sequence and leaves the unpinned rows in their slots', () => {
-    const next = reorderWithinBlock(library, 'Induct', 'NoEquip')
+    const next = reorderWithinBlock(interleavedLibrary, 'Induct', 'NoEquip')
     expect(next).not.toBeNull()
     expect(keywords(splitPinned(next!).pinned)).toEqual(['MHE', 'Induct', 'NoEquip', 'Process'])
     expect(keywords(splitPinned(next!).rest)).toEqual(['Preview', 'Cancel', 'Exit'])
   })
 
   it('reorders the unpinned block without disturbing the pinned sequence', () => {
-    const next = reorderWithinBlock(library, 'Exit', 'Preview')
+    const next = reorderWithinBlock(interleavedLibrary, 'Exit', 'Preview')
     expect(keywords(splitPinned(next!).rest)).toEqual(['Exit', 'Preview', 'Cancel'])
     expect(keywords(splitPinned(next!).pinned)).toEqual(['MHE', 'NoEquip', 'Process', 'Induct'])
   })
 
-  it('refuses a drag across the boundary, because the star is what pins', () => {
-    expect(reorderWithinBlock(library, 'MHE', 'Cancel')).toBeNull()
-    expect(reorderWithinBlock(library, 'Exit', 'Process')).toBeNull()
+  it('refuses a drag across the boundary, because the row menu is what pins', () => {
+    expect(reorderWithinBlock(interleavedLibrary, 'MHE', 'Cancel')).toBeNull()
+    expect(reorderWithinBlock(interleavedLibrary, 'Exit', 'Process')).toBeNull()
   })
 
   it('refuses a drop onto the row being dragged', () => {
-    expect(reorderWithinBlock(library, 'MHE', 'MHE')).toBeNull()
+    expect(reorderWithinBlock(interleavedLibrary, 'MHE', 'MHE')).toBeNull()
   })
 
   it('refuses a keyword that is not in the library', () => {
-    expect(reorderWithinBlock(library, 'MHE', 'Missing')).toBeNull()
+    expect(reorderWithinBlock(interleavedLibrary, 'MHE', 'Missing')).toBeNull()
   })
 
   it('never changes the library length or its membership', () => {
-    const next = reorderWithinBlock(library, 'Induct', 'MHE')!
-    expect(next).toHaveLength(library.length)
-    expect([...keywords(next)].sort()).toEqual([...keywords(library)].sort())
+    const next = reorderWithinBlock(interleavedLibrary, 'Induct', 'MHE')!
+    expect(next).toHaveLength(interleavedLibrary.length)
+    expect([...keywords(next)].sort()).toEqual([...keywords(interleavedLibrary)].sort())
   })
 })
