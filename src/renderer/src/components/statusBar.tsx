@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils'
 import { useDeviceContext } from '@/pages/dashboard/contexts/deviceContext'
 import { useSyncContext } from '@/pages/dashboard/contexts/syncContext'
-import { ProvisionProgress } from '@/types'
+import { ProvisionProgress, WorkflowState } from '@/types'
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 
@@ -61,9 +61,21 @@ export function StatusBar({
   const sync = useSyncContext()
   const isSyncRoute = pathname === '/sync'
 
+  const [workflowState, setWorkflowState] = useState<WorkflowState>({})
+
   useEffect(() => {
     void window.adbAPI.getVersion().then(setAdbVersion)
   }, [])
+
+  useEffect(() => {
+    const unsubscribe = window.adbAPI.onWorkflowState(setWorkflowState)
+    return unsubscribe
+  }, [])
+
+  const deviceId = activeDevice?.id ?? ''
+  useEffect(() => {
+    void window.adbAPI.watchWorkflow(deviceId, packageId)
+  }, [deviceId, packageId])
 
   const deviceLabel = activeDevice
     ? `${activeDevice.model ? `${activeDevice.model} · ` : ''}${activeDevice.id}`
@@ -134,6 +146,20 @@ export function StatusBar({
           </>
         ) : (
           <>
+            {workflowState.workflow && workflowState.step && (
+              <span className="group relative">
+                <span className="block max-w-[360px] truncate">
+                  {workflowState.workflow}: {workflowState.step}
+                </span>
+                <span
+                  role="tooltip"
+                  className="pointer-events-none absolute bottom-full right-0 z-50 mb-2 hidden w-max max-w-[480px] flex-col gap-0.5 rounded-md border border-border-control bg-surface-editor px-3 py-2 text-[11px] text-foreground shadow-lg group-hover:flex"
+                >
+                  <span>Workflow: {workflowState.workflow}</span>
+                  <span>Step: {workflowState.step}</span>
+                </span>
+              </span>
+            )}
             {provisionProgress ? (
               <span
                 className="flex items-center gap-1.5 text-success"
