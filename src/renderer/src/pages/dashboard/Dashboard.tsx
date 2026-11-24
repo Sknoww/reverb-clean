@@ -9,6 +9,7 @@ import { togglePinned } from '@/lib/dockOrder'
 import { v4 as uuid } from 'uuid'
 import { CommandModal } from './components/commandModal'
 import { CommandDock } from './components/commandDock'
+import { MirrorPanel } from './components/mirrorPanel'
 import { DeleteModal } from './components/deleteModal'
 import { FlowModal, FlowModalMode } from './components/flowModal'
 import { ProvisionResultModal } from './components/provisionResultModal'
@@ -703,6 +704,14 @@ function ShellLayout() {
     void window.configAPI.updateDockCollapsed(next)
   }, [dockCollapsed])
 
+  const mirrorCollapsed = config.mirrorCollapsed ?? true
+
+  const handleToggleMirror = useCallback(() => {
+    const next = !mirrorCollapsed
+    setConfig((prev) => ({ ...prev, mirrorCollapsed: next }))
+    void window.configAPI.saveConfig({ mirrorCollapsed: next })
+  }, [mirrorCollapsed])
+
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -798,6 +807,9 @@ function ShellLayout() {
           <Shell
             topBar={topBar}
             dock={dock}
+            mirror={
+              <MirrorPanel collapsed={mirrorCollapsed} onToggleCollapsed={handleToggleMirror} />
+            }
             statusBar={
               <StatusBar
                 lastRun={lastRun}

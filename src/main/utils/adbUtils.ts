@@ -18,3 +18,8 @@ export const getAdbPath = (override?: string): string => {
   const trimmed = override?.trim()
   return trimmed ? trimmed : getBundledAdbPath()
 }
+
+export const getBundledScrcpyServerPath = (): string =>
+  app.isPackaged
+    ? path.join(process.resourcesPath, 'extraResources', 'scrcpy', 'scrcpy-server')
+    : path.join(process.cwd(), 'extraResources', 'scrcpy', 'scrcpy-server')

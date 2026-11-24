@@ -1,3 +1,4 @@
+import { isFocusCommandBarShortcut } from '@/lib/mirrorInput'
 import { useScrollMemory } from '@/lib/hooks/use-scroll-memory'
 import { useSessionState } from '@/lib/hooks/use-session-state'
 import { AdbCommand, Project } from '@/types'
@@ -39,7 +40,7 @@ export function CommandTab({
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      if (isFocusCommandBarShortcut(e)) {
         e.preventDefault()
         inputRef.current?.focus()
       }

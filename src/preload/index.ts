@@ -1,6 +1,13 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import { randomUUID } from 'node:crypto'
-import { ProvisionProgress, RegionSelection, ScreenScanProgress } from './types'
+import {
+  ProvisionProgress,
+  RegionSelection,
+  ScreenScanProgress,
+  ScrcpyPacket,
+  ScrcpyState,
+  WorkflowState
+} from './types'
 
 contextBridge.exposeInMainWorld('projectAPI', {
   saveProject: (project) => ipcRenderer.invoke('project:save', project),
@@ -11,6 +18,18 @@ contextBridge.exposeInMainWorld('projectAPI', {
     ipcRenderer.invoke('project:duplicate', sourceFilename, newName, newDescription)
 })
 
+let scrcpyListeners = 0
+
+const trackScrcpySubscription = (): (() => void) => {
+  if (scrcpyListeners++ === 0) void ipcRenderer.invoke('scrcpy:subscribe')
+  let released = false
+  return () => {
+    if (released) return
+    released = true
+    if (--scrcpyListeners === 0) void ipcRenderer.invoke('scrcpy:unsubscribe')
+  }
+}
+
 contextBridge.exposeInMainWorld('adbAPI', {
   getDevices: () => ipcRenderer.invoke('adb:getDevices'),
   getVersion: () => ipcRenderer.invoke('adb:version'),
@@ -18,7 +37,46 @@ contextBridge.exposeInMainWorld('adbAPI', {
   executeCommand: (type, value) => ipcRenderer.invoke('adb:execute', type, value),
   executeApplicationReset: () => ipcRenderer.invoke('adb:applicationReset'),
 
-  clearStorage: () => ipcRenderer.invoke('adb:clearStorage')
+  clearStorage: () => ipcRenderer.invoke('adb:clearStorage'),
+
+  scrcpyState: () => ipcRenderer.invoke('scrcpy:state'),
+  startScrcpy: (deviceId: string) => ipcRenderer.invoke('scrcpy:start', deviceId),
+  stopScrcpy: () => ipcRenderer.invoke('scrcpy:stop'),
+  onScrcpyState: (callback: (state: ScrcpyState) => void) => {
+    const listener = (_event: IpcRendererEvent, state: ScrcpyState): void => callback(state)
+    ipcRenderer.on('scrcpy:state', listener)
+    const release = trackScrcpySubscription()
+    return () => {
+      ipcRenderer.removeListener('scrcpy:state', listener)
+      release()
+    }
+  },
+
+  sendScrcpyTouch: (action: string, x: number, y: number, width: number, height: number) =>
+    ipcRenderer.send('scrcpy:touch', action, x, y, width, height),
+  sendScrcpyScroll: (x: number, y: number, dx: number, dy: number, width: number, height: number) =>
+    ipcRenderer.send('scrcpy:scroll', x, y, dx, dy, width, height),
+  sendScrcpyKey: (action: string, code: string, meta: number) =>
+    ipcRenderer.send('scrcpy:key', action, code, meta),
+  sendScrcpyNav: (button: string) => ipcRenderer.send('scrcpy:nav', button),
+  requestScrcpyKeyframe: () => ipcRenderer.invoke('scrcpy:keyframe'),
+  onScrcpyPacket: (callback: (packet: ScrcpyPacket) => void) => {
+    const listener = (_event: IpcRendererEvent, packet: ScrcpyPacket): void => callback(packet)
+    ipcRenderer.on('scrcpy:packet', listener)
+    const release = trackScrcpySubscription()
+    return () => {
+      ipcRenderer.removeListener('scrcpy:packet', listener)
+      release()
+    }
+  },
+
+  watchWorkflow: (deviceId: string, packageId: string) =>
+    ipcRenderer.invoke('adb:watchWorkflow', deviceId, packageId),
+  onWorkflowState: (callback: (state: WorkflowState) => void) => {
+    const listener = (_event: IpcRendererEvent, state: WorkflowState): void => callback(state)
+    ipcRenderer.on('adb:workflowState', listener)
+    return () => ipcRenderer.removeListener('adb:workflowState', listener)
+  }
 })
 
 const invokeBarcodeScan = (

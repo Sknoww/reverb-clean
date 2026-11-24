@@ -46,7 +46,7 @@ npm ci             # install
 npm run dev        # run from source
 npm start          # run the built app
 npm run build      # typecheck + electron-vite build
-npm test           # vitest — 80 tests across 12 files
+npm test           # vitest — 96 tests across 16 files
 npm run lint       # checks, never writes
 npm run lint:fix   # writes; autofix can change semantics, unlike formatting
 npm run format     # prettier, repo-wide, a no-op on a clean tree
@@ -138,12 +138,19 @@ No backend. Managers under `src/main/managers/`:
 
 `adbManager` · `adbBroadcast` · `configManager` · `projectManager` · `dialogManager` · `jsManager` ·
 `syncManager` · `backupManager` · `provisionManager` · `barcodeScanner` · `screenBarcodeScanner` ·
-`regionBarcodeScanner` · `macScreenshotCapture` · `screenPermissionManager`
+`regionBarcodeScanner` · `macScreenshotCapture` · `screenPermissionManager` · `workflowTracker` ·
+`scrcpyManager`
 
 ADB runs through `child_process` against binaries bundled in `extraResources/` (`adbWin`, `adbMac`).
 IPC uses namespaced handlers — `project:*`, `adb:*`, `config:*`, `js:*`, `dialog:*`, `logger:*`,
-`sync:*`, `provision:*`, `barcode:*`, `screenPermission:*` — all `invoke`/`handle` except the one
-push channel `provision:progress`.
+`sync:*`, `provision:*`, `barcode:*`, `screenPermission:*`, `scrcpy:*` — all `invoke`/`handle`
+except the push channels `provision:progress`, `adb:workflowState`, `scrcpy:state` and
+`scrcpy:packet`, and the fire-and-forget `send`/`on` mirror input channels `scrcpy:touch`,
+`scrcpy:scroll`, `scrcpy:key` and `scrcpy:nav`.
+
+**The status bar's `<workflow>: <step>` is read from `adb logcat --pid` of the target package**
+(`workflowTracker`), parsed per line as it arrives. The client pid is re-checked with `pidof` every
+3s — while attached, to catch a restart, and while missing, to attach once it appears.
 
 **Command payloads are passed as argv arrays, never interpolated into a shell string.** A scanned or
 typed value can contain quotes, backslashes and shell metacharacters, and it has to reach
@@ -355,7 +362,7 @@ configurable — pushed in via `applyLoggingConfig` at startup and after every c
 
 ### 4.5 Testing
 
-Vitest. `npm test` is 80 tests across 12 files, covering the barcode decoder and its Windows/macOS
+Vitest. `npm test` is 96 tests across 16 files, covering the barcode decoder and its Windows/macOS
 capture seams, the safe ADB argv boundary, region-selection geometry, the screen-permission manager,
 the preload boundary, `configManager`'s recents transform, and the dock's pinned ordering.
 
@@ -429,7 +436,7 @@ back to a literal only where no token exists (mostly one-off box-shadows).
 
 `Shell` (`mainContainer.tsx`) composes `NavRail` + top-bar slot + routed content + dock slot +
 `StatusBar`. It owns the aside _frame_ and width only — the dock owns everything inside it, so its
-header can sit flush and line up with the top bar. `DOCKLESS_ROUTES` is `/sync` and `/settings`.
+header can sit flush and line up with the top bar. `DOCKLESS_ROUTES` is `/sync` and `/settings`; it also hides the bottom mirror panel.
 
 - **Nav rail** (62px, left) — `bg-surface-chrome`, right border `hairline`. 34×34 logo tile on top;
   42×42 item tiles (radius 11) with a 15px glyph and a 10px caption (full names as tooltips);

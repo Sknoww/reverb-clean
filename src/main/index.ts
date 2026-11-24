@@ -1,5 +1,13 @@
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
-import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, nativeTheme, shell } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  IpcMainInvokeEvent,
+  nativeTheme,
+  shell,
+  WebContents
+} from 'electron'
 import { join } from 'path'
 import logo from '../../resources/icon.png?asset'
 import { ProvisionProgress } from './types'
@@ -13,6 +21,22 @@ import {
   getAdbVersion,
   getConnectedDevices
 } from './managers/adbManager'
+import {
+  disposeWorkflowTracker,
+  setWorkflowListener,
+  watchWorkflow
+} from './managers/workflowTracker'
+import {
+  getScrcpyState,
+  requestKeyframe,
+  sendKey,
+  sendNav,
+  sendScroll,
+  sendTouch,
+  setScrcpyListeners,
+  startScrcpy,
+  stopScrcpy
+} from './managers/scrcpyManager'
 import { executeJsScript } from './managers/jsManager'
 import { sweepStaleMacCaptureDirectories } from './managers/macScreenshotCapture'
 import { runProvision } from './managers/provisionManager'
@@ -153,6 +177,11 @@ if (!app.requestSingleInstanceLock()) {
     setupIPC()
   })
 }
+
+app.on('will-quit', () => {
+  disposeWorkflowTracker()
+  stopScrcpy()
+})
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -308,6 +337,55 @@ function setupIPC() {
       logger.error('Error getting adb version', { error })
       return null
     }
+  })
+
+  ipcMain.handle('adb:watchWorkflow', (event, deviceId: string, packageId: string) => {
+    setWorkflowListener((state) => {
+      if (!event.sender.isDestroyed()) event.sender.send('adb:workflowState', state)
+    })
+    watchWorkflow(String(deviceId ?? ''), String(packageId ?? ''))
+  })
+
+  ipcMain.handle('scrcpy:state', () => getScrcpyState())
+  const scrcpySubscribers = new Set<WebContents>()
+  const broadcastScrcpy = (channel: string, payload: unknown): void => {
+    for (const contents of scrcpySubscribers) {
+      if (contents.isDestroyed()) scrcpySubscribers.delete(contents)
+      else contents.send(channel, payload)
+    }
+  }
+  setScrcpyListeners(
+    (state) => broadcastScrcpy('scrcpy:state', state),
+    (packet) => broadcastScrcpy('scrcpy:packet', packet)
+  )
+  ipcMain.handle('scrcpy:subscribe', (event) => {
+    const contents = event.sender
+    if (!scrcpySubscribers.has(contents)) {
+      scrcpySubscribers.add(contents)
+      contents.once('destroyed', () => scrcpySubscribers.delete(contents))
+    }
+    contents.send('scrcpy:state', getScrcpyState())
+    requestKeyframe()
+  })
+  ipcMain.handle('scrcpy:unsubscribe', (event) => {
+    scrcpySubscribers.delete(event.sender)
+  })
+  ipcMain.handle('scrcpy:start', (_event, deviceId: string) => startScrcpy(String(deviceId ?? '')))
+  ipcMain.handle('scrcpy:stop', () => stopScrcpy())
+  ipcMain.handle('scrcpy:keyframe', () => requestKeyframe())
+  ipcMain.on('scrcpy:touch', (_, action, x, y, width, height) => {
+    if (action === 'down' || action === 'move' || action === 'up') {
+      sendTouch(action, Number(x), Number(y), Number(width), Number(height))
+    }
+  })
+  ipcMain.on('scrcpy:scroll', (_, x, y, dx, dy, width, height) =>
+    sendScroll(Number(x), Number(y), Number(dx), Number(dy), Number(width), Number(height))
+  )
+  ipcMain.on('scrcpy:key', (_, action, code, meta) => {
+    if (action === 'down' || action === 'up') sendKey(action, String(code), Number(meta))
+  })
+  ipcMain.on('scrcpy:nav', (_, button) => {
+    if (button === 'back' || button === 'home') sendNav(button)
   })
 
   ipcMain.handle('adb:applicationReset', async () => {

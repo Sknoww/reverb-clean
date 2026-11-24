@@ -43,3 +43,17 @@ describe('screen permission preload boundary', () => {
     ])
   })
 })
+
+describe('scrcpy subscription', () => {
+  it('subscribes on the first listener and unsubscribes after the last', () => {
+    const api = electron.exposed.get('adbAPI')!
+    electron.invoke.mockClear()
+    const offState = api.onScrcpyState(() => undefined) as () => void
+    const offPacket = api.onScrcpyPacket(() => undefined) as () => void
+    offState()
+    expect(electron.invoke.mock.calls).toEqual([['scrcpy:subscribe']])
+    offPacket()
+    offPacket()
+    expect(electron.invoke.mock.calls).toEqual([['scrcpy:subscribe'], ['scrcpy:unsubscribe']])
+  })
+})

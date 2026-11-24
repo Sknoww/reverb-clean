@@ -34,6 +34,7 @@ export interface Config {
   mostRecentProjectIds: string[]
   commonCommands: AdbCommand[]
   dockCollapsed?: boolean
+  mirrorCollapsed?: boolean
 
   connectorRoot: string
   sync?: SyncConfig
@@ -294,4 +295,22 @@ export interface JsExecutionResult {
 
   error?: 'deviceNotFound' | 'adbFailure' | 'parseError' | 'noTarget'
   message?: string
+}
+
+export interface WorkflowState {
+  workflow?: string
+  step?: string
+}
+
+export interface ScrcpyPacket {
+  type: 'config' | 'frame'
+  data: Uint8Array
+  keyframe?: boolean
+  pts?: number
+}
+
+export interface ScrcpyState {
+  running: boolean
+  deviceId?: string
+  error?: string
 }

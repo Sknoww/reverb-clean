@@ -19,7 +19,10 @@ import {
   SyncConfig,
   SyncPlanResult,
   SyncScanResult,
-  TargetConfig
+  TargetConfig,
+  ScrcpyPacket,
+  ScrcpyState,
+  WorkflowState
 } from './types'
 
 declare global {
@@ -44,6 +47,34 @@ declare global {
       executeApplicationReset: () => Promise<AdbCommandResult>
 
       clearStorage: () => Promise<ClearStorageResult>
+
+      scrcpyState: () => Promise<ScrcpyState>
+      startScrcpy: (deviceId: string) => Promise<ScrcpyState>
+      stopScrcpy: () => Promise<void>
+      onScrcpyState: (callback: (state: ScrcpyState) => void) => () => void
+
+      sendScrcpyTouch: (
+        action: 'down' | 'move' | 'up',
+        x: number,
+        y: number,
+        width: number,
+        height: number
+      ) => void
+      sendScrcpyScroll: (
+        x: number,
+        y: number,
+        dx: number,
+        dy: number,
+        width: number,
+        height: number
+      ) => void
+      sendScrcpyKey: (action: 'down' | 'up', code: string, meta: number) => void
+      sendScrcpyNav: (button: 'back' | 'home') => void
+      requestScrcpyKeyframe: () => Promise<void>
+      onScrcpyPacket: (callback: (packet: ScrcpyPacket) => void) => () => void
+
+      watchWorkflow: (deviceId: string, packageId: string) => Promise<void>
+      onWorkflowState: (callback: (state: WorkflowState) => void) => () => void
     }
     barcodeAPI: {
       scanScreens: (

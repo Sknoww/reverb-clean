@@ -83,6 +83,27 @@ between expressions.
 - **Unpinning deletes the key rather than storing `false`**, so the in-memory and on-disk shapes are
   identical and the validator's output round-trips.
 
+## Mirror panel
+
+`mirrorPanel.tsx`, rendered from the shell's `mirror` slot under the routed content on every route but
+`/sync` and `/settings`, collapsible like the dock (`mirrorCollapsed`, collapsed by default).
+
+- **The stream is decoded in the renderer, not shown in a native window.** `scrcpyManager` drives
+  the bundled `extraResources/scrcpy/scrcpy-server` through the `@yume-chan` packages over the adb
+  server on 5037, and sends config and frame packets over `scrcpy:packet`; `use-mirror-stream.ts`
+  decodes them with WebCodecs onto a canvas (`mirrorDecoder.ts`). Delivery goes to windows that
+  called `scrcpy:subscribe`, not to whichever window started the session; subscribing replays state
+  and resets the encoder. A dropped delta frame or a decoder error discards the decoder and waits for
+  a keyframe. **The server jar and `AdbScrcpyOptions3_3_3` must stay on
+  the same scrcpy version** — the server refuses a mismatched client.
+- **The panel is hidden with CSS on dockless routes, never unmounted**: a fresh decoder has to wait for
+  a keyframe the server only sends at start (the hook asks for one with `resetVideo` when it is missing).
+- Start/Stop lives in the panel header, independent of collapse: collapsing hides the view but keeps the
+  stream. State lives in main, so it survives navigation, and the server is killed on quit.
+- **Controls are forwarded from the canvas**: pointer down/move/up, wheel and keyboard, plus Back and
+  Home buttons that appear only while running. Keyboard input needs canvas focus, and Cmd-modified keys
+  are never forwarded so app shortcuts keep working.
+
 ## Top bar
 
 `topBar.tsx`: left is title · `/` breadcrumb; right is 34px peers at `gap-2.5` with **no primary**

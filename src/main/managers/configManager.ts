@@ -178,6 +178,7 @@ const defaultConfig: Config = seedClientDefaults({
   mostRecentProjectIds: [],
   commonCommands: [],
   dockCollapsed: false,
+  mirrorCollapsed: true,
   connectorRoot: '',
   sync: defaultSyncConfig,
   adbPath: '',
@@ -416,6 +417,10 @@ const validateAndFillConfig = (config: any): Config => {
         )
       : defaultConfig.mostRecentProjectIds,
     commonCommands: validateCommonCommands(config.commonCommands),
+    mirrorCollapsed:
+      typeof config.mirrorCollapsed === 'boolean'
+        ? config.mirrorCollapsed
+        : defaultConfig.mirrorCollapsed,
     dockCollapsed:
       typeof config.dockCollapsed === 'boolean'
         ? config.dockCollapsed

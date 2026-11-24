@@ -8,12 +8,14 @@ const DOCKLESS_ROUTES = new Set(['/sync', '/settings'])
 export function Shell({
   topBar,
   dock,
+  mirror,
   statusBar,
   children,
   dockCollapsed
 }: {
   topBar: ReactNode
   dock: ReactNode
+  mirror: ReactNode
   statusBar: ReactNode
   children: ReactNode
   dockCollapsed: boolean
@@ -30,6 +32,7 @@ export function Shell({
             {topBar}
           </header>
           <main className="flex min-h-0 flex-1 flex-col overflow-hidden px-5 py-4">{children}</main>
+          <section className={cn('flex-shrink-0', !showDock && 'hidden')}>{mirror}</section>
         </div>
         {showDock && (
           <aside
